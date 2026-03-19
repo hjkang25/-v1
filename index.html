@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GC Health Intelligence Weekly</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+html { scroll-behavior: smooth; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Noto Sans KR',sans-serif; background:#f0f2f5; color:#1a1f36; font-size:14px; }
+
+.layout { display:flex; flex-direction:column; min-height:100vh; }
+
+/* ── GNB ── */
+.gnb {
+  background:#0f2554;
+  position:sticky; top:0; z-index:100;
+  box-shadow:0 2px 8px rgba(0,0,0,0.18);
+}
+.gnb-inner {
+  display:flex; align-items:center;
+  height:56px; padding:0 32px; gap:0;
+}
+.gnb-logo {
+  display:flex; flex-direction:column; justify-content:center; gap:3px;
+  margin-right:36px; flex-shrink:0; cursor:default;
+}
+.gnb-logo-gc {
+  font-size:13px; font-weight:700; color:#fff;
+  letter-spacing:0.04em; line-height:1.3;
+  white-space:nowrap;
+}
+.gnb-logo-sub {
+  font-size:9px; color:rgba(255,255,255,0.4);
+  letter-spacing:0.08em; margin-top:1px;
+}
+
+/* 메인 탭 */
+.gnb-tabs { display:flex; align-items:stretch; height:56px; gap:0; }
+.gnb-tab {
+  display:flex; align-items:center; gap:6px;
+  padding:0 20px; font-size:13px; font-weight:500;
+  color:rgba(255,255,255,0.6); cursor:pointer;
+  border-bottom:3px solid transparent;
+  transition:all 0.15s; white-space:nowrap;
+  border:none; background:transparent;
+  font-family:'Noto Sans KR',sans-serif;
+}
+.gnb-tab:hover { color:#fff; background:rgba(255,255,255,0.06); }
+.gnb-tab.active { color:#fff; border-bottom:3px solid #4fc3f7; font-weight:700; }
+.gnb-tab .icon { font-size:14px; }
+
+/* 구분선 */
+.gnb-divider { width:1px; background:rgba(255,255,255,0.1); margin:14px 8px; }
+
+/* 우측 메타 */
+.gnb-right {
+  margin-left:auto; display:flex; align-items:center; gap:12px;
+}
+.gnb-live {
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:rgba(255,255,255,0.45);
+  white-space:nowrap;
+}
+.live-dot {
+  display:inline-block; width:6px; height:6px;
+  background:#4ade80; border-radius:50%;
+  animation:blink 2s ease infinite; flex-shrink:0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.gnb-date {
+  font-size:11px; color:rgba(255,255,255,0.5);
+  background:rgba(255,255,255,0.08);
+  padding:4px 11px; border-radius:20px; white-space:nowrap;
+}
+.press-btn {
+  background:rgba(255,255,255,0.12); color:#fff;
+  border:1px solid rgba(255,255,255,0.2);
+  font-family:'Noto Sans KR',sans-serif; font-size:12px;
+  font-weight:500; padding:6px 14px; border-radius:6px;
+  cursor:pointer; transition:all 0.15s; white-space:nowrap;
+}
+.press-btn:hover { background:rgba(255,255,255,0.22); }
+.subscribe-btn {
+  background:#fff; color:#0f2554;
+  border:none;
+  font-family:'Noto Sans KR',sans-serif; font-size:12px;
+  font-weight:700; padding:7px 18px; border-radius:6px;
+  cursor:pointer; transition:all 0.15s; white-space:nowrap;
+  display:flex; align-items:center; gap:5px;
+}
+.subscribe-btn::before { content:'✉'; font-size:13px; }
+.subscribe-btn:hover { background:#f0f4ff; }
+
+/* ── 서브 네비 (탭 선택 시 하위 메뉴) ── */
+.subnav {
+  background:#fff; border-bottom:1px solid #e2e6ee;
+  display:flex; align-items:center; gap:0;
+  padding:0 32px; height:44px; overflow-x:auto;
+}
+.subnav::-webkit-scrollbar { display:none; }
+.subnav-item {
+  display:flex; align-items:center; gap:5px;
+  padding:0 16px; height:44px; font-size:12px;
+  color:#6b7280; cursor:pointer; white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:all 0.15s;
+}
+.subnav-item:hover { color:#0f2554; }
+.subnav-item.active { color:#0f2554; border-bottom-color:#2563eb; font-weight:600; }
+.subnav-icon { font-size:13px; }
+
+/* ── MAIN ── */
+.main { flex:1; display:flex; flex-direction:column; }
+.tab-content { display:none; padding:24px 32px 40px; }
+.tab-content.active { display:block; }
+
+/* KPI ROW */
+.kpi-row { display:grid; gap:14px; margin-bottom:20px; align-items:stretch; }
+.kpi-row.col4 { grid-template-columns:repeat(4,1fr); }
+.kpi-row.col3 { grid-template-columns:repeat(3,1fr); }
+.kpi-card { background:#fff; border-radius:10px; padding:18px 20px; border:1px solid #e2e6ee; position:relative; overflow:hidden; }
+.kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+.kpi-card.blue::before { background:#2563eb; }
+.kpi-card.red::before { background:#2563eb; }
+.kpi-card.amber::before { background:#2563eb; }
+.kpi-card.green::before { background:#2563eb; }
+.kpi-card.purple::before { background:#2563eb; }
+.kpi-label { font-size:11px; color:#6b7280; font-weight:500; margin-bottom:8px; letter-spacing:0.02em; }
+.kpi-value { font-size:28px; font-weight:700; color:#1a1f36; line-height:1; margin-bottom:5px; letter-spacing:-0.5px; }
+.kpi-value .unit { font-size:14px; font-weight:500; color:#9ca3af; }
+.kpi-change { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:600; padding:2px 7px; border-radius:9px; }
+.kpi-change.up { color:#0f2554; background:#eff6ff; }
+.kpi-change.dn { color:#0f2554; background:#eff6ff; }
+.kpi-change.neutral { color:#0f2554; background:#eff6ff; }
+.kpi-source { font-size:10px; color:#d1d5db; margin-top:8px; padding-top:8px; border-top:1px solid #f3f4f6; }
+
+/* PANELS */
+.chart-row { display:grid; gap:14px; margin-bottom:20px; align-items:start; }
+.chart-row.col2 { grid-template-columns:1fr 1fr; }
+.chart-row.col3 { grid-template-columns:1fr 1fr 1fr; }
+.chart-row.col32 { grid-template-columns:3fr 2fr; }
+.chart-row.col23 { grid-template-columns:2fr 3fr; }
+.chart-row.col13 { grid-template-columns:1fr 3fr; }
+.chart-row.col1 { grid-template-columns:1fr; }
+
+.panel { background:#fff; border-radius:10px; border:1px solid #e2e6ee; padding:20px 22px; align-self:start; }
+.panel-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px; }
+.panel-title { font-size:13px; font-weight:600; color:#1a1f36; line-height:1.4; }
+.panel-sub { font-size:11px; color:#9ca3af; margin-top:3px; }
+.panel-badges { display:flex; gap:6px; flex-shrink:0; margin-left:10px; flex-wrap:wrap; justify-content:flex-end; }
+.badge { font-size:10px; font-weight:600; padding:3px 9px; border-radius:9px; white-space:nowrap; }
+.badge.b2b { background:#eff6ff; color:#2563eb; }
+.badge.b2h { background:#eff6ff; color:#2563eb; }
+.badge.red { background:#fef2f2; color:#dc2626; }
+.badge.green { background:#f0fdf4; color:#059669; }
+.badge.gray { background:#f3f4f6; color:#6b7280; }
+.badge.purple { background:#f5f3ff; color:#7c3aed; }
+
+canvas { display:block; width:100%!important; }
+
+/* SECTION DIVIDER */
+.sec-div { display:flex; align-items:center; gap:12px; margin:6px 0 18px; }
+.sec-div-pill { font-size:11px; font-weight:700; color:#fff; padding:4px 14px; border-radius:20px; flex-shrink:0; }
+.sec-div-pill.b2b { background:#2563eb; }
+.sec-div-pill.b2h { background:#2563eb; }
+.sec-div-line { flex:1; height:1px; background:#e2e6ee; }
+.sec-div-note { font-size:11px; color:#9ca3af; flex-shrink:0; }
+
+/* HBAR */
+.hbar-list { display:flex; flex-direction:column; gap:10px; }
+.hbar-row { display:flex; align-items:center; gap:10px; }
+.hbar-label { font-size:11px; color:#374151; width:85px; text-align:right; flex-shrink:0; line-height:1.3; }
+.hbar-track { flex:1; background:#f3f4f6; border-radius:3px; height:7px; overflow:hidden; }
+.hbar-fill { height:100%; border-radius:3px; transition:width 1.4s cubic-bezier(0.16,1,0.3,1); }
+.hbar-val { font-size:11px; font-weight:700; width:40px; flex-shrink:0; }
+.hbar-delta { font-size:10px; width:36px; flex-shrink:0; }
+
+/* INSIGHT BOX */
+.insight-list { display:flex; flex-direction:column; gap:8px; }
+.insight-item { display:flex; gap:10px; padding:10px 12px; background:#f8f9fc; border-radius:7px; border:1px solid #e8eaf0; align-items:flex-start; }
+.insight-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
+.insight-text { font-size:12px; color:#374151; line-height:1.65; }
+.insight-text strong { color:#1a1f36; font-weight:600; }
+
+/* HIGH-RISK TABLE */
+.risk-table { width:100%; border-collapse:collapse; font-size:12px; }
+.risk-table th { text-align:left; padding:7px 10px; color:#6b7280; font-weight:600; border-bottom:2px solid #e2e6ee; font-size:11px; background:#f8f9fc; }
+.risk-table td { padding:9px 10px; border-bottom:1px solid #f3f4f6; color:#374151; vertical-align:middle; }
+.risk-table tr:last-child td { border-bottom:none; }
+.risk-table tr:hover td { background:#fafbff; }
+.risk-pill { display:inline-block; font-size:10px; font-weight:700; padding:2px 8px; border-radius:8px; }
+.risk-high { background:#eff6ff; color:#1d40ae; }
+.risk-mid { background:#dbeafe; color:#2563eb; }
+.risk-low { background:#e0f2fe; color:#0369a1; }
+.cost-num { font-weight:700; color:#0f2554; font-size:13px; }
+.rank-num { font-weight:700; color:#2563eb; font-size:13px; }
+
+/* 7대항목 GRID */
+.seven-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:10px; margin-bottom:20px; align-items:start; }
+.seven-card { background:#fff; border:1px solid #e2e6ee; border-radius:10px; padding:14px 10px; text-align:center; cursor:pointer; transition:all 0.15s; align-self:start; }
+.seven-card:hover { border-color:#2563eb; transform:translateY(-1px); box-shadow:0 4px 12px rgba(37,99,235,0.1); }
+.seven-card.active-card { border-color:#2563eb; background:#eff6ff; }
+.seven-icon { font-size:22px; margin-bottom:6px; }
+.seven-name { font-size:11px; font-weight:600; color:#374151; margin-bottom:4px; }
+.seven-rate { font-size:16px; font-weight:700; color:#1a1f36; }
+.seven-rate.danger { color:#0f2554; }
+.seven-rate.warn { color:#2563eb; }
+.seven-sublabel { font-size:9px; font-weight:600; color:#9ca3af; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:3px; }
+.seven-desc { font-size:10px; color:#6b7280; margin-top:2px; }
+.seven-change { font-size:10px; margin-top:3px; }
+.seven-change.up { color:#2563eb; }
+.seven-change.dn { color:#6b7280; }
+
+/* BENCHMARK HIGHLIGHT */
+.bench-highlight { 
+  background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border:1px solid #bfdbfe; border-radius:10px; 
+  padding:16px 20px; margin-bottom:20px;
+  display:flex; align-items:center; gap:16px;
+}
+.bench-icon { font-size:28px; flex-shrink:0; }
+.bench-text { font-size:13px; color:#1e40af; line-height:1.7; }
+.bench-text strong { color:#1d40ae; font-weight:700; font-size:14px; }
+
+/* COST BOX */
+.cost-box {
+  background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  border:1px solid #bfdbfe; border-radius:10px; padding:18px 20px;
+  margin-bottom:20px;
+}
+.cost-box-title { font-size:13px; font-weight:700; color:#1d40ae; margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+.cost-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.cost-item { text-align:center; background:rgba(255,255,255,0.7); border-radius:8px; padding:12px 10px; }
+.cost-item-label { font-size:11px; color:#1e40af; margin-bottom:5px; }
+.cost-item-value { font-size:20px; font-weight:700; color:#1d40ae; }
+.cost-item-unit { font-size:11px; color:#2563eb; }
+
+/* SEASONAL BOX */
+.seasonal-box { background:linear-gradient(135deg,#eff6ff,#dbeafe); border:1px solid #bfdbfe; border-radius:10px; padding:16px 18px; margin-bottom:14px; display:flex; gap:14px; align-items:center; }
+.seasonal-icon { font-size:30px; flex-shrink:0; }
+.seasonal-text { font-size:13px; color:#1e40af; line-height:1.7; }
+.seasonal-text strong { font-weight:700; }
+
+/* HORIZONTAL SCROLL NEWS */
+.hscroll-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: 32px;
+  padding-bottom: 8px;
+  /* hide scrollbar but keep functional */
+  scrollbar-width: thin;
+  scrollbar-color: #e2e6ee transparent;
+}
+.hscroll-wrap::-webkit-scrollbar { height: 4px; }
+.hscroll-wrap::-webkit-scrollbar-track { background: transparent; }
+.hscroll-wrap::-webkit-scrollbar-thumb { background: #e2e6ee; border-radius: 2px; }
+.hscroll-track {
+  display: flex;
+  gap: 14px;
+  padding: 4px 2px 4px;
+  width: max-content;
+}
+.hcard {
+  width: 220px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.15s;
+}
+.hcard:hover { border-color: #2563eb; transform: translateY(-2px); box-shadow: 0 4px 16px rgba(37,99,235,0.1); }
+.hcard-img {
+  height: 120px;
+  overflow: hidden;
+  background-color: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hcard-img svg { width:100%; height:100%; display:block; }
+.hcard-body { padding: 12px 14px; flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.hcard-date { font-size: 10px; color: #9ca3af; font-weight: 500; }
+.hcard-title { font-size: 12px; font-weight: 600; color: #1a1f36; line-height: 1.5; flex: 1; }
+.hcard-tag {
+  display: inline-block;
+  font-size: 10px; font-weight: 600;
+  color: #2563eb; background: #eff6ff;
+  padding: 2px 8px; border-radius: 8px;
+  align-self: flex-start; margin-top: 4px;
+}
+
+/* INDUSTRY TABS */
+.ind-tab {
+  padding:7px 16px; border-radius:20px; font-size:12px; font-weight:500;
+  font-family:'Noto Sans KR',sans-serif; cursor:pointer;
+  border:1px solid #e2e6ee; background:#fff; color:#6b7280; transition:all 0.15s;
+}
+.ind-tab:hover { border-color:#2563eb; color:#2563eb; }
+.ind-tab.active { background:#0f2554; color:#fff; border-color:#0f2554; font-weight:700; }
+
+/* DISTRICT HEATMAP */
+.district-cell {
+  padding:8px 6px; border-radius:6px; text-align:center;
+  line-height:1.4; cursor:default;
+}
+.district-cell strong { display:block; font-size:12px; font-weight:700; }
+.district-cell span { font-size:9px; }
+.district-cell.hot { background:#dbeafe; color:#1e40af; }
+.district-cell.warm { background:#e0f2fe; color:#0369a1; }
+.district-cell.mild { background:#f0f9ff; color:#0c4a6e; }
+.district-cell.normal { background:#f3f4f6; color:#374151; }
+.district-cell.cool { background:#f8fafc; color:#64748b; }
+
+/* SIGNAL ROW */
+.signal-row {
+  display:flex; align-items:flex-start; gap:12px;
+  padding:10px 12px; border-radius:7px; border:1px solid #e8eaf0;
+}
+.signal-row.up-signal { background:#fef2f2; border-color:#fecaca; }
+.signal-row.dn-signal { background:#f0fdf4; border-color:#bbf7d0; }
+.signal-pct { font-family:monospace; font-size:14px; font-weight:700; color:#dc2626; width:48px; flex-shrink:0; padding-top:1px; }
+.signal-name { font-size:13px; font-weight:600; color:#1a1f36; margin-bottom:3px; }
+.signal-action { font-size:11px; color:#6b7280; line-height:1.5; }
+
+/* SEASON CALENDAR */
+.cal-row {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:7px; font-size:12px;
+}
+.cal-row.hot-month { background:#fef2f2; }
+.cal-row.warm-month { background:#fff7ed; }
+.cal-row.mild-month { background:#f8f9fc; }
+.cal-month { font-weight:700; width:56px; flex-shrink:0; color:#1a1f36; }
+.cal-item { font-weight:500; flex:1; color:#374151; }
+.cal-tip { font-size:11px; color:#6b7280; white-space:nowrap; }
+
+/* REGION DISEASE */
+#regionDiseaseList { display:flex; flex-direction:column; gap:8px; margin-top:4px; }
+
+/* REPORT TAB */
+.report-sub { display:none; }
+.report-sub.active, .report-sub[style*="block"] { display:block; }
+
+.rpt-chapter-card {
+  background:#fff; border:1px solid #e2e6ee; border-radius:10px;
+  padding:22px; cursor:pointer; position:relative;
+  transition:all 0.18s;
+}
+.rpt-chapter-card:hover { transform:translateY(-3px); box-shadow:0 6px 20px rgba(0,0,0,0.08); border-color:#2563eb; }
+.rpt-chapter-tag { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; padding:3px 10px; border-radius:10px; display:inline-block; margin-bottom:12px; }
+.rpt-chapter-tag.b2b { background:#eff6ff; color:#2563eb; }
+.rpt-chapter-tag.b2h { background:#f0fdf4; color:#059669; }
+.rpt-chapter-num { font-size:10px; font-weight:600; color:#9ca3af; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:6px; }
+.rpt-chapter-title { font-size:16px; font-weight:700; color:#1a1f36; line-height:1.4; margin-bottom:10px; }
+.rpt-chapter-desc { font-size:12px; color:#6b7280; line-height:1.7; margin-bottom:14px; }
+.rpt-chapter-tags { display:flex; gap:6px; flex-wrap:wrap; }
+.rpt-tag { font-size:10px; color:#6b7280; background:#f3f4f6; padding:2px 8px; border-radius:8px; }
+
+.rpt-archive-card {
+  background:#fff; border:1px solid #e2e6ee; border-radius:8px;
+  padding:14px 16px; cursor:pointer; transition:all 0.15s; position:relative;
+  display:flex; flex-direction:column;
+}
+.rpt-archive-card:hover { border-color:#2563eb; }
+.rpt-archive-tag { font-size:9px; font-weight:700; padding:2px 7px; border-radius:7px; display:inline-block; margin-bottom:8px; }
+.rpt-archive-tag.b2b { background:#eff6ff; color:#2563eb; }
+.rpt-archive-tag.b2h { background:#f0fdf4; color:#059669; }
+.rpt-archive-tag.special { background:#fffbeb; color:#d97706; }
+.rpt-archive-label { font-size:12px; font-weight:700; color:#1a1f36; margin-bottom:3px; }
+.rpt-archive-sub { font-size:11px; color:#9ca3af; margin-bottom:10px; }
+.rpt-archive-link { font-size:11px; font-weight:600; color:#2563eb; }
+
+.rpt-series-card {
+  background:#fff; border:1px solid #e2e6ee; border-top-width:3px; border-radius:10px;
+  padding:22px; cursor:pointer; transition:all 0.18s; position:relative;
+}
+.rpt-series-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,0.07); }
+.rpt-series-eyebrow { font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+.rpt-series-title { font-size:15px; font-weight:700; color:#1a1f36; line-height:1.4; margin-bottom:10px; }
+.rpt-series-desc { font-size:12px; color:#6b7280; line-height:1.7; margin-bottom:14px; }
+.rpt-series-meta { font-size:10px; color:#9ca3af; margin-bottom:10px; }
+.rpt-series-link { font-size:11px; font-weight:700; }
+
+.rpt-archive-row {
+  display:flex; align-items:center; gap:16px;
+  padding:14px 18px; background:#fff; border:1px solid #e2e6ee;
+  border-radius:8px; transition:all 0.15s;
+}
+.rpt-archive-row:hover { border-color:#2563eb; background:#fafbff; }
+.rpt-archive-year { font-size:24px; font-weight:800; color:#e2e6ee; flex-shrink:0; width:54px; }
+.rpt-archive-row-title { font-size:13px; font-weight:600; color:#1a1f36; }
+.rpt-new-badge { font-size:10px; background:#eff6ff; color:#2563eb; padding:2px 7px; border-radius:8px; margin-left:8px; font-weight:700; }
+.rpt-archive-row-meta { font-size:11px; color:#9ca3af; margin-top:3px; }
+.rpt-archive-row-link { font-size:12px; font-weight:600; color:#2563eb; cursor:pointer; flex-shrink:0; margin-left:auto; }
+
+/* MODAL */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:#fff; border-radius:14px; padding:34px; max-width:500px; width:90%; position:relative; box-shadow:0 20px 60px rgba(0,0,0,0.15); }
+.modal-close { position:absolute; top:14px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:#9ca3af; }
+.modal-eyebrow { font-size:11px; font-weight:700; color:#2563eb; letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; }
+.modal-title { font-size:19px; font-weight:700; margin-bottom:12px; }
+.modal-body { font-size:13px; color:#6b7280; line-height:1.8; margin-bottom:18px; }
+.modal-cite-box { background:#f8f9fc; border:1px solid #e2e6ee; border-radius:7px; padding:14px; font-size:12px; color:#374151; line-height:1.8; margin-bottom:18px; font-family:monospace; }
+.modal-contact { font-size:13px; color:#6b7280; padding-top:14px; border-top:1px solid #e2e6ee; line-height:1.8; }
+.modal-contact strong { color:#0f2554; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- GNB -->
+<nav class="gnb">
+  <div class="gnb-inner">
+    <div class="gnb-logo">
+      <img src="data:image/png;base64,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" alt="GC" style="width:64px;height:auto;display:block;">
+      <div class="gnb-logo-sub">Health Intelligence · 2026 W11</div>
+    </div>
+
+    <div class="gnb-divider"></div>
+
+    <div class="gnb-tabs">
+      <button class="gnb-tab active" onclick="switchTab('b2b',this)">
+        <span class="icon">🏢</span> B2B 기업건강
+      </button>
+      <button class="gnb-tab" onclick="switchTab('b2h',this)">
+        <span class="icon">🏥</span> B2H 의료기관
+      </button>
+      <button class="gnb-tab" onclick="switchTab('report',this)">
+        <span class="icon">📑</span> GC 헬스 리포트
+      </button>
+      <button class="gnb-tab" onclick="switchTab('datasource',this)">
+        <span class="icon">🗄️</span> 데이터 소스
+      </button>
+    </div>
+
+    <div class="gnb-right">
+      <div class="gnb-live">
+        <span class="live-dot"></span>
+        라이브 · 2026.03.15 18:00
+      </div>
+      <div class="gnb-date"></div>
+      <button class="subscribe-btn" onclick="openSubscribeModal()">구독하기</button>
+    </div>
+  </div>
+</nav>
+
+<!-- 서브 네비 -->
+<div class="subnav" id="subnav-b2b">
+  <div class="subnav-item active"   onclick="scrollToSection('sec-seven')">7대 검진 항목</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-industry')">업종별 건강 통계</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-risk')">관리 대상 & 비용</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-news')">GC케어 뉴스레터</div>
+</div>
+<div class="subnav" id="subnav-b2h" style="display:none;">
+  <div class="subnav-item active"   onclick="scrollToSection('sec-region-disease')">지역 질환 알림</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-trend')">전국 급증 진료</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-season')">시즌 수익 아이템</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-noncovered')">비급여 트렌드</div>
+</div>
+<div class="subnav" id="subnav-report" style="display:none;">
+  <div class="subnav-item active"   onclick="switchReportTab('monthly',this)">월간 리포트</div>
+  <div class="subnav-item"          onclick="switchReportTab('annual',this)">연간 리포트</div>
+</div>
+<div class="subnav" id="subnav-datasource" style="display:none;">
+  <div class="subnav-item active"   onclick="scrollToSection('sec-gccare-db')">GC케어 건강검진 DB</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-alphan-db')">알파앤 의원 DB</div>
+  <div class="subnav-item"          onclick="scrollToSection('sec-methodology')">분류 기준 & 방법론</div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- ===================== B2B TAB ===================== -->
+  <div class="tab-content active" id="tab-b2b">
+
+    <!-- KPI -->
+    <div class="kpi-row col4">
+      <div class="kpi-card blue">
+        <div class="kpi-label">GC케어 건강검진 누적 건수</div>
+        <div class="kpi-value">214<span class="unit">만 건</span></div>
+        <div><span class="kpi-change up">↑ 전년比 +8.3%</span></div>
+        <div class="kpi-source">국내 기업 건강검진 No.1 · GC케어</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">이번 주 관리 필요 대상 추정</div>
+        <div class="kpi-value">41.2<span class="unit">만 명</span></div>
+        <div><span class="kpi-change up">↑ 전년 동기 대비 +6.1%</span></div>
+        <div class="kpi-source">7대 항목 1개 이상 이상 소견자</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">관리 미이행 시 기업 손실 추정</div>
+        <div class="kpi-value">1,840<span class="unit">억원</span></div>
+        <div><span class="kpi-change neutral">연간 합산 (계약기업 전체)</span></div>
+        <div class="kpi-source">병가·생산성저하·조기이직 포함</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">사후관리 도입 기업 병가 감소</div>
+        <div class="kpi-value">-38<span class="unit">%</span></div>
+        <div><span class="kpi-change dn">↓ 2년 후 측정치</span></div>
+        <div class="kpi-source">GC케어 고객사 124곳 분석</div>
+      </div>
+    </div>
+
+    <!-- 7대 항목 -->
+    <div id="sec-seven" class="sec-div">
+      <div class="sec-div-pill b2b">공단검진 7대 항목 현황</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">GC케어 계약 기업 전체 · 2026년 1분기 · n=214만 건</div>
+    </div>
+
+    <!-- ① 상단 공통 설명 -->
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:12px;color:#92400e;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:15px;">ℹ️</span>
+      <span>아래 수치는 <strong>수검자 대비 이상 소견율</strong>입니다. 건강검진을 받은 임직원 중 해당 항목에서 이상 소견이 확인된 비율을 나타냅니다. 화살표(↑↓)는 전년 동기 대비 변화입니다.</span>
+    </div>
+
+    <div class="seven-grid">
+      <div class="seven-card active-card">
+        <div class="seven-icon">❤️</div>
+        <div class="seven-name">혈압</div>
+        <!-- ② 카드 내 '이상 소견율' 레이블 -->
+        <div class="seven-sublabel">이상 소견율</div>
+        <div class="seven-rate danger">22.4%</div>
+        <!-- ③ 수치 아래 설명 -->
+        <div class="seven-desc">수검자 100명 중 22명</div>
+        <div class="seven-change up">↑ +1.8%p (전년比)</div>
+      </div>
+      <div class="seven-card">
+        <div class="seven-icon">🩸</div>
+        <div class="seven-name">혈당</div>
+        <div class="seven-sublabel">이상 소견율</div>
+        <div class="seven-rate warn">18.7%</div>
+        <div class="seven-desc">수검자 100명 중 19명</div>
+        <div class="seven-change up">↑ +2.3%p (전년比)</div>
+      </div>
+      <div class="seven-card">
+        <div class="seven-icon">🫀</div>
+        <div class="seven-name">콜레스테롤</div>
+        <div class="seven-sublabel">이상 소견율</div>
+        <div class="seven-rate warn">31.2%</div>
+        <div class="seven-desc">수검자 100명 중 31명</div>
+        <div class="seven-change up">↑ +0.9%p (전년比)</div>
+      </div>
+      <div class="seven-card">
+        <div class="seven-icon">🫁</div>
+        <div class="seven-name">간기능</div>
+        <div class="seven-sublabel">이상 소견율</div>
+        <div class="seven-rate danger">24.8%</div>
+        <div class="seven-desc">수검자 100명 중 25명</div>
+        <div class="seven-change up">↑ +1.2%p (전년比)</div>
+      </div>
+      <div class="seven-card">
+        <div class="seven-icon">🫘</div>
+        <div class="seven-name">신장기능</div>
+        <div class="seven-sublabel">이상 소견율</div>
+        <div class="seven-rate">9.3%</div>
+        <div class="seven-desc">수검자 100명 중 9명</div>
+        <div class="seven-change dn">↓ -0.4%p (전년比)</div>
+      </div>
+      <div class="seven-card">
+        <div class="seven-icon">🩺</div>
+        <div class="seven-name">빈혈</div>
+        <div class="seven-sublabel">이상 소견율</div>
+        <div class="seven-rate">8.1%</div>
+        <div class="seven-desc">수검자 100명 중 8명</div>
+        <div class="seven-change dn">↓ -0.2%p (전년比)</div>
+      </div>
+      <div class="seven-card">
+        <div class="seven-icon">⚖️</div>
+        <div class="seven-name">비만</div>
+        <div class="seven-sublabel">이상 소견율</div>
+        <div class="seven-rate danger">34.2%</div>
+        <div class="seven-desc">수검자 100명 중 34명</div>
+        <div class="seven-change up">↑ +3.2%p (전년比)</div>
+      </div>
+    </div>
+
+    <div class="chart-row col32" style="align-items:start;">
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">7대 항목별 이상 소견율 — 연도별 추이</div>
+            <div class="panel-sub">GC케어 계약 기업 전체 · 2022–2026 Q1</div>
+          </div>
+          <div class="panel-badges"><span class="badge b2b">GC케어</span></div>
+        </div>
+        <div style="position:relative;height:220px;overflow:hidden;"><canvas id="sevenTrendChart"></canvas></div>
+      </div>
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">항목별 이상 소견율 현황</div>
+            <div class="panel-sub">2026년 1분기 기준</div>
+          </div>
+          <div class="panel-badges"><span class="badge red">주의 필요</span></div>
+        </div>
+        <div class="hbar-list" style="margin-top:4px;">
+          <div class="hbar-row">
+            <div class="hbar-label">비만</div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:86%;background:#dc2626;"></div></div>
+            <div class="hbar-val" style="color:#2563eb">34.2%</div>
+            <div class="hbar-delta" style="color:#2563eb">▲3.2</div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label">콜레스테롤</div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:78%;background:#2563eb;"></div></div>
+            <div class="hbar-val" style="color:#2563eb">31.2%</div>
+            <div class="hbar-delta" style="color:#2563eb">▲0.9</div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label">간기능</div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:62%;background:#2563eb;"></div></div>
+            <div class="hbar-val" style="color:#2563eb">24.8%</div>
+            <div class="hbar-delta" style="color:#2563eb">▲1.2</div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label">혈압</div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:56%;background:#2563eb;"></div></div>
+            <div class="hbar-val" style="color:#2563eb">22.4%</div>
+            <div class="hbar-delta" style="color:#2563eb">▲1.8</div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label">혈당</div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:47%;background:#2563eb;"></div></div>
+            <div class="hbar-val" style="color:#2563eb">18.7%</div>
+            <div class="hbar-delta" style="color:#2563eb">▲2.3</div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label">신장기능</div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:23%;background:#93c5fd;"></div></div>
+            <div class="hbar-val" style="color:#6b7280">9.3%</div>
+            <div class="hbar-delta" style="color:#6b7280">▼0.4</div>
+          </div>
+          <div class="hbar-row">
+            <div class="hbar-label">빈혈</div>
+            <div class="hbar-track"><div class="hbar-fill" style="width:20%;background:#93c5fd;"></div></div>
+            <div class="hbar-val" style="color:#6b7280">8.1%</div>
+            <div class="hbar-delta" style="color:#6b7280">▼0.2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- 업종별 건강 통계 -->
+    <div id="sec-industry" class="sec-div">
+      <div class="sec-div-pill b2b">업종별 건강 통계</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">GC케어 계약 기업 집계 · 표준산업분류 기반 · 개별 기업 정보 미포함</div>
+    </div>
+
+    <!-- 업종 선택 탭 -->
+    <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+      <button class="ind-tab active" onclick="selectIndustry('all',this)">전체 업종 비교</button>
+      <button class="ind-tab" onclick="selectIndustry('bank',this)">금융·은행</button>
+      <button class="ind-tab" onclick="selectIndustry('construction',this)">건설업</button>
+      <button class="ind-tab" onclick="selectIndustry('it',this)">IT·포털</button>
+      <button class="ind-tab" onclick="selectIndustry('manufacturing',this)">제조업</button>
+      <button class="ind-tab" onclick="selectIndustry('retail',this)">유통·서비스</button>
+      <button class="ind-tab" onclick="selectIndustry('hospital',this)">의료·바이오</button>
+    </div>
+
+    <!-- 인용 문구 박스 -->
+    <div id="citeBox" style="background:#f0f7ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;">
+      <span style="font-size:16px;flex-shrink:0;margin-top:1px;">📋</span>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#2563eb;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">언론 인용 문구</div>
+        <div id="citeText" style="font-size:13px;color:#1e40af;line-height:1.7;"></div>
+      </div>
+    </div>
+
+    <div class="chart-row col32" style="align-items:start;">
+      <!-- 7대 항목 업종별 비교 차트 -->
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title" id="benchChartTitle">전체 업종 — 7대 항목 이상 소견율 비교</div>
+            <div class="panel-sub">GC케어 계약 기업 집계 · 2026년 1분기 · 30–40대 기준</div>
+          </div>
+          <div class="panel-badges"><span class="badge b2b">업종 집계</span><span class="badge gray">익명</span></div>
+        </div>
+        <div style="position:relative;height:220px;overflow:hidden;"><canvas id="benchChart"></canvas></div>
+        <div style="margin-top:10px;font-size:11px;color:#9ca3af;padding-top:10px;border-top:1px solid #f3f4f6;">
+          ※ 본 통계는 GC케어 계약 기업의 익명 집계 데이터입니다. 개별 기업 정보는 포함되지 않습니다.
+        </div>
+      </div>
+
+      <!-- 오른쪽: KPI + 인사이트 -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <!-- 선택 업종 KPI -->
+        <div id="benchKpi" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+
+        <!-- 인사이트 -->
+        <div class="panel" style="flex:1;">
+          <div class="panel-header" style="margin-bottom:12px;">
+            <div class="panel-title" id="insightTitle">업종별 주요 인사이트</div>
+          </div>
+          <div id="benchInsight" class="insight-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 관리 대상 & 기업 손실 비용 -->
+    <div id="sec-risk" class="sec-div">
+      <div class="sec-div-pill b2b">관리 대상 & 기업 손실 비용</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">핵심 질문: 우리 회사에서 지금 관리해야 할 임직원은 누구인가?</div>
+    </div>
+
+    <div class="cost-box">
+      <div class="cost-box-title">🚨 관리 미이행 시 기업 손실 추정 — GC케어 계약 기업 전체 합산</div>
+      <div class="cost-grid">
+        <div class="cost-item">
+          <div class="cost-item-label">연간 초과 병가 비용</div>
+          <div class="cost-item-value">820<span class="cost-item-unit">억원</span></div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-item-label">생산성 저하 손실 추정</div>
+          <div class="cost-item-value">740<span class="cost-item-unit">억원</span></div>
+        </div>
+        <div class="cost-item">
+          <div class="cost-item-label">조기이직·채용 비용</div>
+          <div class="cost-item-value">280<span class="cost-item-unit">억원</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-row col32" style="align-items:stretch;">
+      <div class="panel" style="display:flex;flex-direction:column;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">관리 대상 임직원 규모 및 기업별 손실 비용 추정</div>
+            <div class="panel-sub">7대 항목 이상 소견 보유자 · 업종별 합산</div>
+          </div>
+          <div class="panel-badges"><span class="badge red">손실 추정</span></div>
+        </div>
+        <div style="position:relative;flex:1;min-height:200px;"><canvas id="riskCostChart" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas></div>
+      </div>
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">관리 우선순위 대상 그룹</div>
+            <div class="panel-sub">위험도 × 비용 기반 분류</div>
+          </div>
+          <div class="panel-badges"><span class="badge red">관리 필요</span></div>
+        </div>
+        <table class="risk-table">
+          <thead>
+            <tr><th>우선순위</th><th>대상 그룹</th><th>해당 인원 비율</th><th>1인당 연 손실</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="risk-pill risk-high">최우선</span></td>
+              <td>3개 항목 이상 이상 소견</td>
+              <td>8.4%</td>
+              <td class="cost-num">214만원</td>
+            </tr>
+            <tr>
+              <td><span class="risk-pill risk-high">긴급</span></td>
+              <td>2개 항목 이상 소견</td>
+              <td>16.2%</td>
+              <td class="cost-num">138만원</td>
+            </tr>
+            <tr>
+              <td><span class="risk-pill risk-mid">관리</span></td>
+              <td>1개 항목 이상 소견</td>
+              <td>38.7%</td>
+              <td class="cost-num">76만원</td>
+            </tr>
+            <tr>
+              <td><span class="risk-pill risk-low">관찰</span></td>
+              <td>경계치 (정상 범위 내)</td>
+              <td>24.1%</td>
+              <td class="cost-num">31만원</td>
+            </tr>
+            <tr>
+              <td><span class="risk-pill risk-low" style="background:#f0fdf4;color:#059669">정상</span></td>
+              <td>전항목 정상</td>
+              <td>12.6%</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GC케어 뉴스레터 가로 스크롤 -->
+    <div id="sec-news" class="sec-div">
+      <div class="sec-div-pill" style="background:#0f2554;">GC케어 뉴스레터</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">기업 건강관리 인사이트 · 헬스케어 트렌드</div>
+      <a href="https://www.gccare.net/news" target="_blank" style="font-size:11px;color:#2563eb;font-weight:600;text-decoration:none;white-space:nowrap;">전체 보기 →</a>
+    </div>
+
+    <div class="hscroll-wrap">
+      <div class="hscroll-track">
+
+        <a href="https://www.gccare.net/news/18" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg1"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2026.02.19</div>
+            <div class="hcard-title">임직원에게 바로 안내할 수 있는 건강검진 Q&A 총정리</div>
+            <div class="hcard-tag">건강검진</div>
+          </div>
+        </a>
+
+        <a href="https://www.gccare.net/news/17" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg2"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2026.02.19</div>
+            <div class="hcard-title">2026년 임직원 건강관리 운영 캘린더 딱 한장으로 정리!</div>
+            <div class="hcard-tag">운영 가이드</div>
+          </div>
+        </a>
+
+        <a href="https://www.gccare.net/news/16" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg3"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2026.02.19</div>
+            <div class="hcard-title">임직원 건강관리, 나만 놓친 인사이트가 있을까?</div>
+            <div class="hcard-tag">인사이트</div>
+          </div>
+        </a>
+
+        <a href="https://www.gccare.net/news/15" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg4"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2026.01.15</div>
+            <div class="hcard-title">2025년, 기업들은 건강증진 프로그램을 어떻게 선택했을까?</div>
+            <div class="hcard-tag">트렌드</div>
+          </div>
+        </a>
+
+        <a href="https://www.gccare.net/news/14" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg5"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2026.01.15</div>
+            <div class="hcard-title">2026년 '헬스케어 트렌드' 총정리</div>
+            <div class="hcard-tag">트렌드</div>
+          </div>
+        </a>
+
+        <a href="https://www.gccare.net/news/13" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg6"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2025.12.18</div>
+            <div class="hcard-title">2025 임직원 건강검진 지원 비용 트렌드</div>
+            <div class="hcard-tag">비용 분석</div>
+          </div>
+        </a>
+
+        <a href="https://www.gccare.net/news/12" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg7"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2025.12.18</div>
+            <div class="hcard-title">임원 검진 운영, 유독 어렵게 느껴진다면?</div>
+            <div class="hcard-tag">운영 가이드</div>
+          </div>
+        </a>
+
+        <a href="https://www.gccare.net/news/10" target="_blank" class="hcard">
+          <div class="hcard-img" id="nimg8"></div>
+          <div class="hcard-body">
+            <div class="hcard-date">2025.11.20</div>
+            <div class="hcard-title">임직원을 위한 만성질환 관리, 정말 효과가 있을까?</div>
+            <div class="hcard-tag">만성질환</div>
+          </div>
+        </a>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===================== B2H TAB ===================== -->
+  <div class="tab-content" id="tab-b2h">
+
+    <!-- 헤드라인 KPI -->
+    <div id="sec-b2h-kpi" class="kpi-row col4">
+      <div class="kpi-card blue">
+        <div class="kpi-label">알파앤 연계 의원 수</div>
+        <div class="kpi-value">1,500<span class="unit">+</span></div>
+        <div><span class="kpi-change neutral">전국 고른 지역 분포</span></div>
+        <div class="kpi-source">1차 의원급 중심 · 알파앤 EMR DB</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">이번 주 전국 급증 질환</div>
+        <div class="kpi-value">장염</div>
+        <div><span class="kpi-change up">↑ 전국 11개 구·시 동시 급증</span></div>
+        <div class="kpi-source">알파앤 1,500개 의원 집계 · 데이터 기반 자동 감지</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">이번 주 시즌 수익 아이템</div>
+        <div class="kpi-value">독감백신</div>
+        <div><span class="kpi-change up">↑ 접종 수요 +12% 조기 상승</span></div>
+        <div class="kpi-source">재고 확보 골든타임</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">이번 주 비급여 수익 1위</div>
+        <div class="kpi-value">도수치료</div>
+        <div><span class="kpi-change up">↑ 전주 대비 +9.4%</span></div>
+        <div class="kpi-source">정형외과 비급여 최다 처방</div>
+      </div>
+    </div>
+
+    <!-- 지역 질환 알림 -->
+    <div id="sec-region-disease" class="sec-div">
+      <div class="sec-div-pill b2h">이번 주 지역 질환 알림</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">주간 업데이트 · 알파앤 EMR 진단 데이터 기반 · 구(區) 단위 집계</div>
+    </div>
+
+    <!-- 프레이밍 안내 -->
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 18px;margin-bottom:16px;font-size:13px;color:#1e40af;display:flex;align-items:center;gap:10px;">
+      <span style="font-size:18px;flex-shrink:0;">💡</span>
+      <span><strong>개원의 경영 인사이트:</strong> 우리 동네에서 이번 주 어떤 질환이 급증하는지 먼저 알면, 관련 검사·시술을 선제적으로 마케팅할 수 있습니다.</span>
+    </div>
+
+    <div class="chart-row col2" style="align-items:start;">
+
+      <!-- 지역 선택 + 질환 알림 -->
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">지역별 급증 질환 & 경영 액션</div>
+            <div class="panel-sub">이번 주 기준 · 전주 대비 증가율 상위 질환</div>
+          </div>
+          <div class="panel-badges" style="display:flex;gap:6px;align-items:center;">
+            <select id="sidoSelect" onchange="onSidoChange()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:5px 26px 5px 10px;border:1px solid #e2e6ee;border-radius:6px;background:#f8f9fc;color:#1a1f36;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22><path fill=%22%236b7280%22 d=%22M5 7L0 2h10z%22/></svg>');background-repeat:no-repeat;background-position:right 8px center;min-width:80px;">
+              <option value="seoul">서울</option>
+              <option value="gyeonggi">경기</option>
+              <option value="busan">부산</option>
+              <option value="incheon">인천</option>
+              <option value="daegu">대구</option>
+              <option value="daejeon">대전</option>
+              <option value="gwangju">광주</option>
+              <option value="ulsan">울산</option>
+              <option value="gangwon">강원</option>
+              <option value="chungbuk">충북</option>
+              <option value="chungnam">충남</option>
+              <option value="jeonbuk">전북</option>
+              <option value="jeonnam">전남</option>
+              <option value="gyeongbuk">경북</option>
+              <option value="gyeongnam">경남</option>
+              <option value="jeju">제주</option>
+            </select>
+            <select id="sigunguSelect" onchange="renderRegionDisease()" style="font-family:'Noto Sans KR',sans-serif;font-size:12px;padding:5px 26px 5px 10px;border:1px solid #e2e6ee;border-radius:6px;background:#f8f9fc;color:#1a1f36;cursor:pointer;appearance:none;background-image:url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2210%22 height=%2210%22><path fill=%22%236b7280%22 d=%22M5 7L0 2h10z%22/></svg>');background-repeat:no-repeat;background-position:right 8px center;min-width:100px;"></select>
+          </div>
+        </div>
+        <div id="regionDiseaseList"></div>
+      </div>
+
+      <!-- 지도 대용 히트맵 -->
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">서울 구별 질환 집중도 — 이번 주</div>
+            <div class="panel-sub">진단 건수 전주 대비 증가율 기준</div>
+          </div>
+          <div class="panel-badges"><span class="badge b2h">W11</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;font-size:10px;">
+          <div class="district-cell hot">서초구<br><strong>+34%</strong><br><span>장염</span></div>
+          <div class="district-cell hot">강남구<br><strong>+31%</strong><br><span>장염</span></div>
+          <div class="district-cell warm">마포구<br><strong>+22%</strong><br><span>피부염</span></div>
+          <div class="district-cell warm">송파구<br><strong>+19%</strong><br><span>장염</span></div>
+          <div class="district-cell mild">용산구<br><strong>+14%</strong><br><span>비염</span></div>
+          <div class="district-cell mild">성동구<br><strong>+13%</strong><br><span>피부염</span></div>
+          <div class="district-cell mild">종로구<br><strong>+12%</strong><br><span>인후염</span></div>
+          <div class="district-cell mild">중구<br><strong>+11%</strong><br><span>장염</span></div>
+          <div class="district-cell normal">노원구<br><strong>+7%</strong><br><span>비염</span></div>
+          <div class="district-cell normal">도봉구<br><strong>+6%</strong><br><span>근골격</span></div>
+          <div class="district-cell normal">강북구<br><strong>+5%</strong><br><span>고혈압</span></div>
+          <div class="district-cell normal">성북구<br><strong>+4%</strong><br><span>당뇨</span></div>
+          <div class="district-cell cool">관악구<br><strong>-2%</strong><br><span>-</span></div>
+          <div class="district-cell cool">동작구<br><strong>-3%</strong><br><span>-</span></div>
+          <div class="district-cell cool">영등포<br><strong>-4%</strong><br><span>-</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:10px;color:#6b7280;flex-wrap:wrap;">
+          <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;background:#2563eb;border-radius:2px;"></span>급증 (20%+)</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;background:#60a5fa;border-radius:2px;"></span>증가 (10~20%)</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;background:#bfdbfe;border-radius:2px;"></span>소폭 (0~10%)</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="display:inline-block;width:10px;height:10px;background:#e2e8f0;border-radius:2px;"></span>감소</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 이번 주 전국 급증 진료 -->
+    <div id="sec-trend" class="sec-div">
+      <div class="sec-div-pill b2h">이번 주 전국 급증 진료 TOP</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">알파앤 연계 1,500개 의원 · 전주 대비 진단 건수 증가율</div>
+    </div>
+
+    <div class="chart-row col32" style="align-items:start;">
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">진료과목별 내원 지수 — 월별 추이</div>
+            <div class="panel-sub">2025.10 – 2026.03 · 2024년 평균 = 100</div>
+          </div>
+          <div class="panel-badges"><span class="badge b2h">알파앤</span><span class="badge gray">월별</span></div>
+        </div>
+        <div style="position:relative;height:220px;overflow:hidden;"><canvas id="monthlyTrendChart"></canvas></div>
+      </div>
+
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">이번 주 진료 증감 & 경영 시그널</div>
+            <div class="panel-sub">전주 대비 · W11</div>
+          </div>
+          <div class="panel-badges"><span class="badge b2h">W11</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="signal-row up-signal">
+            <div class="signal-pct">+18%</div>
+            <div class="signal-info">
+              <div class="signal-name">피부과</div>
+              <div class="signal-action">→ 환절기 피크. 보습·아토피 치료 패키지 선제 안내 시점</div>
+            </div>
+          </div>
+          <div class="signal-row up-signal">
+            <div class="signal-pct">+34%</div>
+            <div class="signal-info">
+              <div class="signal-name">장염 (내과)</div>
+              <div class="signal-action">→ 전국 11개 지역 동시 급증. 내 지역 포함 여부 확인 후 마케팅 적기</div>
+            </div>
+          </div>
+          <div class="signal-row up-signal">
+            <div class="signal-pct">+14%</div>
+            <div class="signal-info">
+              <div class="signal-name">이비인후과</div>
+              <div class="signal-action">→ 환절기 비염·인후염. 면역 강화 수액 연계 추천</div>
+            </div>
+          </div>
+          <div class="signal-row up-signal">
+            <div class="signal-pct">+7%</div>
+            <div class="signal-info">
+              <div class="signal-name">가정의학과</div>
+              <div class="signal-action">→ 건강검진 시즌 선행 수요. 검진 패키지 상담 유도</div>
+            </div>
+          </div>
+          <div class="signal-row dn-signal">
+            <div class="signal-pct" style="color:#059669;">-5%</div>
+            <div class="signal-info">
+              <div class="signal-name">안과</div>
+              <div class="signal-action">→ 비수기. 드라이아이 캠페인으로 비수기 방어 가능</div>
+            </div>
+          </div>
+          <div class="signal-row dn-signal">
+            <div class="signal-pct" style="color:#059669;">-8%</div>
+            <div class="signal-info">
+              <div class="signal-name">소아청소년과</div>
+              <div class="signal-action">→ 감소세. 독감 사전 접종 안내로 선수요 창출 가능</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 시즌 수익 아이템 -->
+    <div id="sec-season" class="sec-div">
+      <div class="sec-div-pill b2h">시즌 수익 아이템</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">개원의 보너스 타임 · 예방접종·검진 시즌 타이밍 알림</div>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#0f2554,#1e40af);border-radius:10px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;gap:20px;">
+      <div style="font-size:40px;flex-shrink:0;">💉</div>
+      <div>
+        <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:5px;">독감 시즌 조기 수요 감지 — 재고 확보 지금이 골든타임</div>
+        <div style="font-size:13px;color:#bfdbfe;line-height:1.7;">올해 독감 접종 수요가 전년 동기 대비 <strong style="color:#4fc3f7;">+12% 조기 상승</strong> 중입니다. 작년보다 약 2주 앞당겨 수요가 발생하고 있어 지금 재고를 확보하는 것이 유리합니다.</div>
+      </div>
+      <div style="flex-shrink:0;background:rgba(255,255,255,0.15);border-radius:8px;padding:12px 16px;text-align:center;min-width:100px;">
+        <div style="font-size:22px;font-weight:700;color:#4fc3f7;">142pt</div>
+        <div style="font-size:10px;color:#bfdbfe;margin-top:2px;">접종 수요 지수</div>
+        <div style="font-size:10px;color:#93c5fd;">전년 동기比 +12%</div>
+      </div>
+    </div>
+
+    <div class="chart-row col2" style="align-items:start;">
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">월별 예방접종 수요 지수</div>
+            <div class="panel-sub">독감·폐렴·대상포진 · 2025.10–2026.03</div>
+          </div>
+          <div class="panel-badges"><span class="badge green">시즌</span></div>
+        </div>
+        <div style="position:relative;height:220px;overflow:hidden;"><canvas id="vaccineChart"></canvas></div>
+      </div>
+
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">연간 시즌 수익 달력</div>
+            <div class="panel-sub">월별 핵심 수익 아이템 & 준비 시점</div>
+          </div>
+          <div class="panel-badges"><span class="badge green">경영 캘린더</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="cal-row hot-month"><span class="cal-month">9–10월</span><span class="cal-item">💉 독감백신</span><span class="cal-tip">8월 재고 발주 필수</span></div>
+          <div class="cal-row warm-month"><span class="cal-month">3–5월</span><span class="cal-item">🌸 알레르기·비염</span><span class="cal-tip">2월 말부터 홍보 시작</span></div>
+          <div class="cal-row warm-month"><span class="cal-month">6–8월</span><span class="cal-item">☀️ 자외선·피부</span><span class="cal-tip">미백·레이저 비급여 피크</span></div>
+          <div class="cal-row warm-month"><span class="cal-month">11–12월</span><span class="cal-item">🩺 연말 건강검진</span><span class="cal-tip">10월 패키지 안내 시작</span></div>
+          <div class="cal-row mild-month"><span class="cal-month">1–2월</span><span class="cal-item">🦴 근골격·도수</span><span class="cal-tip">실내활동 증가 → 통증 급증</span></div>
+          <div class="cal-row mild-month"><span class="cal-month">연중</span><span class="cal-item">💊 대상포진·폐렴</span><span class="cal-tip">50대 이상 타겟 상시 홍보</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비급여 트렌드 -->
+    <div id="sec-noncovered" class="sec-div">
+      <div class="sec-div-pill b2h">비급여 수익 트렌드</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">의원 경영 직결 · 알파앤 비급여 처방 집계 · 월별</div>
+    </div>
+
+    <div class="chart-row col2" style="align-items:start;">
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">비급여 항목 처방 건수 추이</div>
+            <div class="panel-sub">상위 5개 항목 · 2025.10–2026.03</div>
+          </div>
+          <div class="panel-badges"><span class="badge purple">비급여</span></div>
+        </div>
+        <div style="position:relative;height:220px;overflow:hidden;"><canvas id="noncoveredChart"></canvas></div>
+      </div>
+
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">이번 달 비급여 TOP 10</div>
+            <div class="panel-sub">2026년 3월 · 전월 대비</div>
+          </div>
+          <div class="panel-badges"><span class="badge purple">비급여</span></div>
+        </div>
+        <table class="risk-table">
+          <thead><tr><th>순위</th><th>항목</th><th>전월比</th><th>진료과</th><th>경영 포인트</th></tr></thead>
+          <tbody>
+            <tr><td class="rank-num">1</td><td>도수치료</td><td class="trend-up">+9.4%</td><td style="font-size:11px;color:#6b7280">정형외과</td><td style="font-size:10px;color:#2563eb">패키지 구성 추천</td></tr>
+            <tr><td class="rank-num">2</td><td>피부 레이저</td><td class="trend-up">+8.1%</td><td style="font-size:11px;color:#6b7280">피부과</td><td style="font-size:10px;color:#2563eb">환절기 시즌 피크</td></tr>
+            <tr><td class="rank-num">3</td><td>체외충격파</td><td class="trend-up">+6.3%</td><td style="font-size:11px;color:#6b7280">정형외과</td><td style="font-size:10px;color:#2563eb">도수치료 연계 가능</td></tr>
+            <tr><td class="rank-num">4</td><td>영양수액</td><td class="trend-up">+5.7%</td><td style="font-size:11px;color:#6b7280">내과</td><td style="font-size:10px;color:#2563eb">직장인 피로회복 수요↑</td></tr>
+            <tr><td class="rank-num">5</td><td>두피·탈모치료</td><td class="trend-up">+4.9%</td><td style="font-size:11px;color:#6b7280">피부과</td><td style="font-size:10px;color:#2563eb">30대 남성 수요 증가</td></tr>
+            <tr><td class="rank-num">6</td><td>프롤로치료</td><td class="trend-up">+3.2%</td><td style="font-size:11px;color:#6b7280">정형외과</td><td style="font-size:10px;color:#6b7280">-</td></tr>
+            <tr><td class="rank-num">7</td><td>보톡스·필러</td><td style="font-size:12px;color:#6b7280">+1.1%</td><td style="font-size:11px;color:#6b7280">피부과</td><td style="font-size:10px;color:#6b7280">-</td></tr>
+            <tr><td class="rank-num">8</td><td>초음파검사</td><td style="font-size:12px;color:#6b7280">-0.4%</td><td style="font-size:11px;color:#6b7280">내과</td><td style="font-size:10px;color:#6b7280">-</td></tr>
+            <tr><td class="rank-num">9</td><td>인대강화주사</td><td class="trend-down">-2.1%</td><td style="font-size:11px;color:#6b7280">정형외과</td><td style="font-size:10px;color:#6b7280">-</td></tr>
+            <tr><td class="rank-num">10</td><td>자가혈치료(PRP)</td><td class="trend-down">-3.8%</td><td style="font-size:11px;color:#6b7280">정형외과</td><td style="font-size:10px;color:#6b7280">-</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 지역 분포 -->
+    <div id="sec-region" class="sec-div">
+      <div class="sec-div-pill b2h">알파앤 의원 지역 분포</div>
+      <div class="sec-div-line"></div>
+      <div class="sec-div-note">전국 1,500개 의원 · 시/도 → 시/군/구 2단계 드릴다운</div>
+    </div>
+
+    <div class="chart-row col2" style="align-items:start;">
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title" id="regionChartTitle">시/도별 의원 분포</div>
+            <div class="panel-sub" id="regionChartSub">전국 알파앤 연계 의원 기준 · 클릭하면 하위 지역 확인</div>
+          </div>
+          <div class="panel-badges">
+            <span class="badge b2h" id="regionBreadcrumb" style="cursor:pointer;display:none;" onclick="resetRegionChart()">← 전체</span>
+            <span class="badge b2h">지역분포</span>
+          </div>
+        </div>
+        <div style="position:relative;height:260px;overflow:hidden;"><canvas id="regionChart"></canvas></div>
+      </div>
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">이번 주 의원 경영 핵심 인사이트</div>
+            <div class="panel-sub">알파앤 데이터 기반 · W11 2026</div>
+          </div>
+          <div class="panel-badges"><span class="badge b2h">W11 인사이트</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="insight-item">
+            <div class="insight-icon">🦠</div>
+            <div class="insight-text"><strong>전국 11개 지역 장염 동시 급증.</strong> 대장내시경 필요성 안내 MKT 적기. 지역 내 의원 선제 문자 발송 권장.</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon">💉</div>
+            <div class="insight-text"><strong>독감백신 조기 수요 +12%.</strong> 예년보다 2주 빠름. 지금 재고 확보 안 하면 시즌 놓침.</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon">💊</div>
+            <div class="insight-text"><strong>도수+체외충격파 세트</strong> 처방 증가세. 패키지로 묶으면 객단가 향상 + 재방문율 동시 개선.</div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-icon">📈</div>
+            <div class="insight-text"><strong>피부과 환절기 피크 도래.</strong> 예약 대기 15분 이내 의원의 신규 전환율이 2.4배 높음.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- ===================== REPORT TAB ===================== -->
+  <div class="tab-content" id="tab-report">
+
+    <!-- 월간 리포트 -->
+    <div id="report-monthly" class="report-sub" style="display:block;">
+
+      <!-- 헤더 배너 (유지) -->
+      <div style="background:linear-gradient(135deg,#0f2554 0%,#1a3a7a 100%);border-radius:12px;padding:36px 40px;margin-bottom:32px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:40px;top:50%;transform:translateY(-50%);font-size:80px;opacity:0.08;font-weight:900;line-height:1;">REPORT</div>
+        <div style="font-size:11px;font-weight:600;color:#4fc3f7;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;">GC Health Intelligence · 월간 리포트</div>
+        <div style="font-size:26px;font-weight:700;line-height:1.3;margin-bottom:12px;">2026년 3월호 — 국내 기업 임직원 건강의 현재</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.7;max-width:600px;">GC케어 214만 건 건강검진 데이터 + 알파앤 1,500개 의원 경영 데이터를 바탕으로,<br>이달의 핵심 건강 신호와 의료기관 경영 인사이트를 정리했습니다.</div>
+        <div style="display:flex;gap:12px;margin-top:20px;">
+          <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:7px;padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;">PDF 다운로드</div>
+          <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:7px;padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;">이메일 공유</div>
+        </div>
+      </div>
+
+      <!-- 컨셉 한 줄 -->
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:#fff;border:1px solid #e2e6ee;border-left:3px solid #0f2554;border-radius:0 8px 8px 0;margin-bottom:28px;">
+        <span style="font-size:15px;flex-shrink:0;">💡</span>
+        <p style="font-size:13px;color:#374151;line-height:1.6;margin:0;">GC는 국내에서 유일하게 <strong>생애 전주기에 걸친 건강 데이터</strong>를 보유한 기업입니다. 이 리포트는 그 누구도 갖지 못한 다각도 시선으로 한국인의 건강을 기록합니다.</p>
+      </div>
+
+      <!-- 이번 호 주요 챕터 -->
+      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;">이번 호 주요 챕터</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:36px;">
+
+        <div class="rpt-chapter-card" onclick="">
+          <div class="rpt-chapter-tag b2b">B2B 기업건강</div>
+          <div class="rpt-chapter-num">Chapter 1</div>
+          <div class="rpt-chapter-title">비만·고혈압 전단계,<br>직장인 건강 적신호</div>
+          <div class="rpt-chapter-desc">IT업종 20-30대 고혈압 전단계 비율 15.9%로 업종 최고. 복부비만 5년 연속 최고치 경신. 기업 관리 비용 연간 1,840억 추산.</div>
+          <div class="rpt-chapter-tags">
+            <span class="rpt-tag">고혈압</span><span class="rpt-tag">비만</span><span class="rpt-tag">IT업종</span>
+          </div>
+        </div>
+
+        <div class="rpt-chapter-card" onclick="">
+          <div class="rpt-chapter-tag b2b">B2B 업종 비교</div>
+          <div class="rpt-chapter-num">Chapter 2</div>
+          <div class="rpt-chapter-title">건설업 간기능 이상,<br>전 업종 최고 34.6%</div>
+          <div class="rpt-chapter-desc">야간 현장 근무·음주 복합 요인. 동종업계 비교 시 최대 15%p 편차 발생. 사후관리 프로그램 도입 기업 병가 38% 감소.</div>
+          <div class="rpt-chapter-tags">
+            <span class="rpt-tag">간기능</span><span class="rpt-tag">건설업</span><span class="rpt-tag">업종비교</span>
+          </div>
+        </div>
+
+        <div class="rpt-chapter-card" onclick="">
+          <div class="rpt-chapter-tag b2h">B2H 의료기관</div>
+          <div class="rpt-chapter-num">Chapter 3</div>
+          <div class="rpt-chapter-title">환절기 피부과 피크,<br>개원의 경영 액션 플랜</div>
+          <div class="rpt-chapter-desc">3월 피부과 내원 +18%, 이비인후과 +14%. 비급여 TOP 도수치료·피부레이저. 독감백신 조기 수요 전년比 +12%.</div>
+          <div class="rpt-chapter-tags">
+            <span class="rpt-tag">피부과</span><span class="rpt-tag">비급여</span><span class="rpt-tag">독감백신</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 지난 월간 리포트 -->
+      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;">지난 월간 리포트</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag b2b">B2B</div>
+          <div class="rpt-archive-label">2026년 2월호</div>
+          <div class="rpt-archive-sub">IT업종 건강 집중 분석</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag special">특집</div>
+          <div class="rpt-archive-label">2026년 1월호</div>
+          <div class="rpt-archive-sub">2026 건강 전망</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag b2h">B2H</div>
+          <div class="rpt-archive-label">2025년 12월호</div>
+          <div class="rpt-archive-sub">연말 건강 체크리스트</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag b2b">B2B</div>
+          <div class="rpt-archive-label">2025년 11월호</div>
+          <div class="rpt-archive-sub">만성질환 관리 심층분석</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag b2h">B2H</div>
+          <div class="rpt-archive-label">2025년 10월호</div>
+          <div class="rpt-archive-sub">비급여 수익 전략</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag b2b">B2B</div>
+          <div class="rpt-archive-label">2025년 9월호</div>
+          <div class="rpt-archive-sub">30대 건강 트렌드</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag b2h">B2H</div>
+          <div class="rpt-archive-label">2025년 8월호</div>
+          <div class="rpt-archive-sub">여름 시즌 진료 분석</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+        <div class="rpt-archive-card">
+          <div class="rpt-archive-tag special">특집</div>
+          <div class="rpt-archive-label">2025년 7월호</div>
+          <div class="rpt-archive-sub">상반기 종합 결산</div>
+          <div class="rpt-archive-link">PDF 보기 →</div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- 연간 리포트 -->
+    <div id="report-annual" class="report-sub" style="display:none;">
+
+      <!-- 헤더 배너 (유지) -->
+      <div style="background:linear-gradient(135deg,#1a1f36 0%,#0f2554 100%);border-radius:12px;padding:36px 40px;margin-bottom:32px;color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;right:40px;top:50%;transform:translateY(-50%);font-size:80px;opacity:0.06;font-weight:900;line-height:1;">2025</div>
+        <div style="font-size:11px;font-weight:600;color:#4fc3f7;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px;">GC Health Intelligence · 연간 리포트</div>
+        <div style="font-size:26px;font-weight:700;line-height:1.3;margin-bottom:12px;">2025 대한민국 기업 임직원 건강 백서</div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.65);line-height:1.7;max-width:640px;">GC케어가 2025년 한 해 동안 수집한 건강검진 빅데이터를 바탕으로,<br>국내 산업별 임직원 건강 트렌드를 심층 분석한 연간 종합 리포트입니다.</div>
+        <div style="display:flex;gap:12px;margin-top:20px;">
+          <div style="background:#4fc3f7;color:#0f2554;border-radius:7px;padding:9px 22px;font-size:12px;font-weight:700;cursor:pointer;">PDF 전문 다운로드</div>
+          <div style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:7px;padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;">요약본 보기</div>
+        </div>
+      </div>
+
+      <!-- 컨셉 한 줄 -->
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;background:#fff;border:1px solid #e2e6ee;border-left:3px solid #0f2554;border-radius:0 8px 8px 0;margin-bottom:28px;">
+        <span style="font-size:15px;flex-shrink:0;">💡</span>
+        <p style="font-size:13px;color:#374151;line-height:1.6;margin:0;">GC는 국내에서 유일하게 <strong>생애 전주기에 걸친 건강 데이터</strong>를 보유한 기업입니다. 이 리포트는 그 누구도 갖지 못한 다각도 시선으로 한국인의 건강을 기록합니다.</p>
+      </div>
+
+      <!-- 발간 리포트 시리즈 -->
+      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;">발간 리포트 시리즈</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:36px;">
+
+        <div class="rpt-series-card" style="border-top-color:#2563eb;">
+          <div class="rpt-series-eyebrow" style="color:#2563eb;">B2B 기업건강</div>
+          <div class="rpt-series-title">2025 국내 기업 임직원<br>건강 트렌드 리포트</div>
+          <div class="rpt-series-desc">214만 건 검진 데이터 기반. 업종별·연령별 7대 항목 분석, 동종업계 비교, 기업 건강관리 투자 ROI 추산 포함.</div>
+          <div class="rpt-series-meta">84p · GC케어 건강검진 DB</div>
+          <div class="rpt-series-link" style="color:#2563eb;">PDF 다운로드 →</div>
+        </div>
+
+        <div class="rpt-series-card" style="border-top-color:#059669;">
+          <div class="rpt-series-eyebrow" style="color:#059669;">B2H 의료기관</div>
+          <div class="rpt-series-title">2025 개원의를 위한<br>경영 인텔리전스 리포트</div>
+          <div class="rpt-series-desc">전국 1,500개 의원 데이터 기반. 진료과목별 수요 트렌드, 비급여 현황, 재방문율 향상 전략, 지역별 경쟁 분석.</div>
+          <div class="rpt-series-meta">72p · 알파앤 의원 DB</div>
+          <div class="rpt-series-link" style="color:#059669;">PDF 다운로드 →</div>
+        </div>
+
+        <div class="rpt-series-card" style="border-top-color:#d97706;border-style:dashed;border-width:2px;border-top-width:3px;">
+          <div style="position:absolute;top:14px;right:14px;font-size:10px;font-weight:700;color:#fff;background:#d97706;padding:2px 8px;border-radius:8px;">준비중</div>
+          <div class="rpt-series-eyebrow" style="color:#d97706;">SPECIAL EDITION</div>
+          <div class="rpt-series-title" style="color:#9ca3af;">GC 다각도 건강 리포트<br>— 동물·노인·직장인</div>
+          <div class="rpt-series-desc" style="color:#9ca3af;">동물병원·노인·직장인 건강 데이터를 통합 분석하는 GC만의 유일한 크로스 리포트. GC처럼 다각도에서 건강을 볼 수 있는 기업은 없습니다.</div>
+          <div class="rpt-series-meta" style="color:#d1d5db;">출간 예정 2026 Q3</div>
+          <div class="rpt-series-link" style="color:#d97706;">사전 알림 신청 →</div>
+        </div>
+
+      </div>
+
+      <!-- 연간 아카이브 -->
+      <div style="font-size:11px;font-weight:700;color:#6b7280;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;">연간 리포트 아카이브</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+
+        <div class="rpt-archive-row">
+          <div class="rpt-archive-year">2025</div>
+          <div style="flex:1;">
+            <span class="rpt-archive-row-title">2025 국내 기업 임직원 건강 트렌드 리포트</span>
+            <span class="rpt-new-badge">최신</span>
+            <div class="rpt-archive-row-meta">GC Health Intelligence · 84p</div>
+          </div>
+          <div class="rpt-archive-row-link">PDF 다운로드 →</div>
+        </div>
+        <div class="rpt-archive-row">
+          <div class="rpt-archive-year">2024</div>
+          <div style="flex:1;">
+            <span class="rpt-archive-row-title">2024 산업별 건강위험 분석 리포트</span>
+            <div class="rpt-archive-row-meta">GC Health Intelligence · 76p</div>
+          </div>
+          <div class="rpt-archive-row-link">PDF 다운로드 →</div>
+        </div>
+        <div class="rpt-archive-row">
+          <div class="rpt-archive-year">2023</div>
+          <div style="flex:1;">
+            <span class="rpt-archive-row-title">2023 포스트 팬데믹 직장인 건강 변화</span>
+            <div class="rpt-archive-row-meta">GC Health Intelligence · 68p</div>
+          </div>
+          <div class="rpt-archive-row-link">PDF 다운로드 →</div>
+        </div>
+        <div class="rpt-archive-row">
+          <div class="rpt-archive-year">2022</div>
+          <div style="flex:1;">
+            <span class="rpt-archive-row-title">2022 국내 기업 건강검진 현황 분석</span>
+            <div class="rpt-archive-row-meta">GC Health Intelligence · 61p</div>
+          </div>
+          <div class="rpt-archive-row-link">PDF 다운로드 →</div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===================== DATA SOURCE TAB ===================== -->
+  <div class="tab-content" id="tab-datasource">
+
+    <div class="kpi-row col3">
+      <div class="kpi-card blue">
+        <div class="kpi-label">GC케어 건강검진 누적 건수</div>
+        <div class="kpi-value">214<span class="unit">만 건</span></div>
+        <div><span class="kpi-change neutral">2026년 1분기 기준</span></div>
+        <div class="kpi-source">국내 기업 건강검진 1위 · GC케어</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">알파앤 연계 의원·병원</div>
+        <div class="kpi-value">1,500<span class="unit">+</span></div>
+        <div><span class="kpi-change neutral">전국 고른 분포</span></div>
+        <div class="kpi-source">알파앤 의원 경영 DB · 유비케어</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">업종 분류 기준</div>
+        <div class="kpi-value">표준산업분류</div>
+        <div><span class="kpi-change neutral">국세청 사업자 데이터 연계</span></div>
+        <div class="kpi-source">통계청 한국표준산업분류 10차</div>
+      </div>
+    </div>
+
+    <div class="chart-row col2" style="align-items:start;">
+      <!-- GC케어 DB -->
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+<span id="sec-gccare-db"></span>            <div class="panel-title">🔬 GC케어 건강검진 데이터베이스</div>
+            <div class="panel-sub">B2B 기업건강 트랙 데이터 소스</div>
+          </div>
+          <span class="badge b2b">B2B</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;">
+          <div style="background:#f8f9fc;border-radius:8px;padding:14px 16px;border:1px solid #e2e6ee;">
+            <div style="font-weight:600;color:#1a1f36;margin-bottom:6px;">데이터 개요</div>
+            <div style="color:#6b7280;line-height:1.8;">GC케어가 20년간 축적한 기업 임직원 건강검진 데이터베이스입니다. 국내 340개 이상의 계약 기업, 214만 건의 검진 결과를 보유하며 공단검진 7대 항목을 포함한 종합 건강 지표를 제공합니다.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:#eff6ff;border-radius:8px;padding:12px 14px;">
+              <div style="font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">수집 항목</div>
+              <div style="font-size:12px;color:#374151;line-height:1.9;">공단검진 7대 항목<br>혈액·소변·심전도 등<br>체성분·골밀도 검사<br>암 검진 결과</div>
+            </div>
+            <div style="background:#eff6ff;border-radius:8px;padding:12px 14px;">
+              <div style="font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">집계 방식</div>
+              <div style="font-size:12px;color:#374151;line-height:1.9;">업종별 익명 집계<br>개별 기업 미식별<br>5개사 미만 업종 비공개<br>분기별 업데이트</div>
+            </div>
+          </div>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;">
+            <div style="font-size:11px;font-weight:600;color:#991b1b;margin-bottom:4px;">🔒 개인정보 보호</div>
+            <div style="font-size:12px;color:#7f1d1d;line-height:1.7;">본 플랫폼에 공개되는 모든 수치는 개인 식별이 불가능한 집계·통계 데이터입니다. 개별 기업명 및 개인 건강 정보는 절대 포함되지 않습니다. ISMS-P 3년 연속 인증 기반 데이터 관리.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 알파앤 DB -->
+      <div class="panel" style="align-self:start;">
+        <div class="panel-header">
+          <div>
+<span id="sec-alphan-db"></span>            <div class="panel-title">🏥 알파앤 의원·병원 경영 DB</div>
+            <div class="panel-sub">B2H 의료기관 트랙 데이터 소스</div>
+          </div>
+          <span class="badge b2h">B2H</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;">
+          <div style="background:#f8f9fc;border-radius:8px;padding:14px 16px;border:1px solid #e2e6ee;">
+            <div style="font-weight:600;color:#1a1f36;margin-bottom:6px;">데이터 개요</div>
+            <div style="color:#6b7280;line-height:1.8;">유비케어의 알파앤(AlphaN)은 국내 1위 EMR(전자의무기록) 솔루션 '의사랑'과 연계된 의원 경영 빅데이터 플랫폼입니다. 전국 1,500개 이상 의원의 진료 트렌드·비급여·경영 데이터를 실시간 집계합니다.</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div style="background:#eff6ff;border-radius:8px;padding:12px 14px;">
+              <div style="font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">수집 항목</div>
+              <div style="font-size:12px;color:#374151;line-height:1.9;">진료과목별 내원 지수<br>비급여 항목 처방량<br>예방접종 수요 지수<br>지역별 내원 분포</div>
+            </div>
+            <div style="background:#eff6ff;border-radius:8px;padding:12px 14px;">
+              <div style="font-size:10px;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">집계 방식</div>
+              <div style="font-size:12px;color:#374151;line-height:1.9;">전국 의원 집계 지수<br>개별 의원 미식별<br>주간/월간 업데이트<br>진료과목별 분류</div>
+            </div>
+          </div>
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;">
+            <div style="font-size:11px;font-weight:600;color:#166534;margin-bottom:4px;">📊 분류 기준</div>
+            <div style="font-size:12px;color:#14532d;line-height:1.7;">업종 분류는 통계청 한국표준산업분류(KSIC) 10차 개정 기준을 사용하며, 국세청 사업자등록 데이터와 연계해 정밀 분류합니다. 국민 평균 비교는 연령 스펙트럼 문제로 제공하지 않습니다.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 방법론 -->
+    <div class="panel" style="align-self:start;">
+      <div class="panel-header">
+        <div>
+<span id="sec-methodology"></span>          <div class="panel-title">📋 분석 방법론 및 면책 사항</div>
+          <div class="panel-sub">데이터 활용 시 참고 사항</div>
+        </div>
+        <span class="badge gray">방법론</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;font-size:12px;color:#374151;line-height:1.8;">
+        <div>
+          <div style="font-weight:700;color:#1a1f36;margin-bottom:8px;font-size:13px;">집계 기준</div>
+          <div>이상 소견율은 각 검진 항목별 임상 기준치(고혈압: 수축기 ≥130mmHg 또는 이완기 ≥80mmHg)를 초과한 수검자 비율입니다. 공단검진 7대 항목은 국민건강보험공단 일반건강검진 기준을 따릅니다.</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:#1a1f36;margin-bottom:8px;font-size:13px;">통계적 유의성</div>
+          <div>업종별 집계는 해당 업종 계약 기업이 5개사 이상이고 수검자가 100명 이상인 경우에만 공개합니다. 표본이 충분하지 않은 업종은 '집계 불가'로 표시됩니다.</div>
+        </div>
+        <div>
+          <div style="font-weight:700;color:#1a1f36;margin-bottom:8px;font-size:13px;">면책 사항</div>
+          <div>본 플랫폼의 데이터는 일반적인 건강 트렌드 파악을 위한 참고 자료입니다. 의학적 진단이나 치료 결정의 근거로 사용할 수 없습니다. 언론 인용 시 출처를 반드시 명시해주세요.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div style="padding:0 28px 20px;background:#f0f2f5;">
+    <div style="padding:18px 22px;background:#fff;border-radius:10px;border:1px solid #e2e6ee;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:11px;color:#9ca3af;line-height:1.8;">
+        GC그룹 헬스데이터 연구소 발행 · 매주 일요일 18:00 업데이트<br>
+        데이터 출처: GC케어 건강검진 빅데이터 · 알파앤 의원·병원 경영 DB (유비케어) · 표준산업분류·국세청 데이터 기반 업종 분류<br>
+        ※ 본 자료의 수치는 샘플 데이터 기반 프로토타입입니다.
+      </div>
+      <div style="font-size:11px;color:#9ca3af;text-align:right;">
+        © 2026 GC Holdings<br>
+        언론 인용 문의: press@gc-intelligence.co.kr
+      </div>
+    </div>
+  </div>
+
+<!-- SUBSCRIBE MODAL -->
+<div class="modal-overlay" id="subscribeModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal" style="max-width:460px;">
+    <button class="modal-close" onclick="document.getElementById('subscribeModal').classList.remove('open')">✕</button>
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:32px;margin-bottom:10px;">✉️</div>
+      <div class="modal-eyebrow" style="justify-content:center;display:flex;">GC Health Intelligence</div>
+      <div class="modal-title" style="font-size:20px;">주간 헬스 인텔리전스 구독</div>
+      <div style="font-size:13px;color:#6b7280;line-height:1.7;margin-top:6px;">매주 일요일, 국내 기업 임직원 건강 트렌드와<br>의료기관 경영 인사이트를 이메일로 받아보세요.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+      <div style="display:flex;gap:8px;">
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">이름</div>
+          <input type="text" placeholder="홍길동" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'">
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">소속</div>
+          <input type="text" placeholder="GC케어" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'">
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">이메일 *</div>
+        <input type="email" placeholder="example@company.com" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:8px;">관심 트랙</div>
+        <div style="display:flex;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;cursor:pointer;padding:7px 14px;border:1px solid #e2e6ee;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2e6ee'">
+            <input type="checkbox" checked style="accent-color:#2563eb;"> 🏢 B2B 기업건강
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;cursor:pointer;padding:7px 14px;border:1px solid #e2e6ee;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2e6ee'">
+            <input type="checkbox" checked style="accent-color:#2563eb;"> 🏥 B2H 의료기관
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="handleSubscribe()" style="width:100%;background:#0f2554;color:#fff;border:none;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;padding:12px;border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#1a3a7a'" onmouseout="this.style.background='#0f2554'">
+      무료 구독하기
+    </button>
+
+    <div style="text-align:center;margin-top:12px;font-size:11px;color:#9ca3af;">
+      매주 1회 발송 · 언제든 수신 거부 가능 · 스팸 없음
+    </div>
+  </div>
+</div>
+
+<!-- PRESS MODAL -->
+<div class="modal-overlay" id="pressModal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal">
+    <button class="modal-close" onclick="document.getElementById('pressModal').classList.remove('open')">✕</button>
+    <div class="modal-eyebrow">언론 인용 가이드</div>
+    <div class="modal-title">기사에 수치를 인용하실 때</div>
+    <div class="modal-body">GC Health Intelligence의 데이터는 출처 명기 조건으로 자유롭게 인용 가능합니다.</div>
+    <div class="modal-cite-box">
+▸ 권장 출처 표기<br><br>
+"GC헬스인텔리전스(2026년 3월) 발표 자료에 따르면..."<br>
+"GC케어·알파앤 데이터 분석(GC Health Intelligence, 2026 W11)..."
+    </div>
+    <div class="modal-contact">
+      <strong>GC 헬스데이터 연구소</strong> 언론 담당<br>
+      press@gc-intelligence.co.kr<br>
+      원데이터 요청, 추가 분석, 기획기사 협력 가능합니다.
+    </div>
+  </div>
+</div>
+
+<script>
+// ===================== BENCHMARK DATA (업종 집계치만, 기업명 없음) =====================
+const IND_DATA = {
+  all: {
+    label: '전체 업종 평균',
+    color: '#6b7280',
+    n: '214만 건',
+    companies: '340개사',
+    data: { bp:18.4, glucose:14.8, chol:28.6, liver:21.2, kidney:8.4, anemia:7.2, obesity:31.4 },
+    highlight: 'bp',
+    cite: 'GC케어 건강검진 데이터(2026년 1분기, n=214만 건)에 따르면, 국내 기업 임직원의 비만 이상 소견율은 31.4%, 콜레스테롤 이상은 28.6%로 나타났다.',
+    insights: [
+      { icon:'⚠️', text:'<strong>비만(31.4%)과 콜레스테롤(28.6%)</strong>이 전체 업종에서 가장 높은 이상 소견율을 기록. 두 항목 모두 5년 연속 상승 중.' },
+      { icon:'📈', text:'<strong>혈당 이상 소견율</strong>이 2022년 11.2%에서 2026년 14.8%로 3.6%p 상승. 전 업종에서 가장 빠른 증가 속도.' },
+      { icon:'📊', text:'국민건강보험공단 평균 대비 <strong>간기능 이상 소견율이 4.8%p 낮음.</strong> 정기 기업 검진의 조기 발견 효과로 분석.' },
+    ]
+  },
+  bank: {
+    label: '금융·은행업',
+    color: '#2563eb',
+    n: '18만 건',
+    companies: '42개사',
+    data: { bp:22.1, glucose:16.4, chol:31.8, liver:19.8, kidney:9.2, anemia:7.8, obesity:33.4 },
+    highlight: 'bp',
+    cite: 'GC케어 건강검진 데이터(2026년 1분기)에 따르면, 금융·은행업 종사자의 고혈압 이상 소견율은 22.1%로 전체 업종 평균(18.4%) 대비 3.7%p 높은 것으로 나타났다.',
+    insights: [
+      { icon:'❤️', text:'<strong>고혈압 이상 소견율 22.1%</strong>로 전체 업종 평균(18.4%) 대비 3.7%p 높음. 40대 남성에서 특히 두드러짐.' },
+      { icon:'⚖️', text:'콜레스테롤 이상 소견율 <strong>31.8%</strong>로 전체 평균(28.6%) 상회. 과도한 업무 스트레스·불규칙한 식습관 복합 작용.' },
+      { icon:'✅', text:'간기능 이상 소견율은 19.8%로 <strong>전체 업종 중 양호한 수준.</strong> 사내 금주 캠페인 효과로 분석.' },
+    ]
+  },
+  construction: {
+    label: '건설업',
+    color: '#d97706',
+    n: '22만 건',
+    companies: '38개사',
+    data: { bp:26.8, glucose:19.4, chol:33.2, liver:34.6, kidney:11.4, anemia:6.2, obesity:40.2 },
+    highlight: 'liver',
+    cite: 'GC케어 건강검진 데이터(2026년 1분기)에 따르면, 건설업 종사자의 간기능 이상 소견율은 34.6%로 전체 업종 평균(21.2%) 대비 13.4%p 높아 전 업종 최고 수준을 기록했다.',
+    insights: [
+      { icon:'🫁', text:'<strong>간기능 이상 소견율 34.6%</strong>로 전체 업종 중 최고. 전체 평균(21.2%) 대비 13.4%p 높음. 야간·현장 근무·음주 복합 요인.' },
+      { icon:'⚖️', text:'비만 이상 소견율 <strong>40.2%</strong>로 전체 업종 최고. 현장 근무 특성상 신체 활동량 많음에도 불구, 고칼로리 식단 영향.' },
+      { icon:'❤️', text:'혈압 이상 소견율도 <strong>26.8%</strong>로 평균(18.4%) 대비 높음. 고강도 현장 업무·스트레스 복합 작용 추정.' },
+    ]
+  },
+  it: {
+    label: 'IT·포털',
+    color: '#7c3aed',
+    n: '31만 건',
+    companies: '58개사',
+    data: { bp:15.9, glucose:17.2, chol:30.4, liver:18.2, kidney:7.8, anemia:9.2, obesity:36.8 },
+    highlight: 'obesity',
+    cite: 'GC케어 건강검진 데이터(2026년 1분기)에 따르면, IT·포털 업종 20-30대의 비만 이상 소견율은 36.8%로, 2년 전 대비 4.8%p 상승하며 전 업종 중 가장 빠른 증가세를 보였다.',
+    insights: [
+      { icon:'⚖️', text:'<strong>비만 이상 소견율 36.8%</strong>로 2년 전(32.0%) 대비 4.8%p 급증. 재택근무 종료 후에도 신체 활동 감소 패턴 지속.' },
+      { icon:'🩸', text:'혈당 이상 소견율 <strong>17.2%</strong>로 평균(14.8%) 대비 높음. 야식·고당도 음료 섭취가 주요 요인으로 분석.' },
+      { icon:'✅', text:'혈압 이상 소견율 <strong>15.9%</strong>는 전체 업종 중 최저 수준. 상대적으로 젊은 연령 구성의 영향.' },
+    ]
+  },
+  manufacturing: {
+    label: '제조업',
+    color: '#dc2626',
+    n: '48만 건',
+    companies: '82개사',
+    data: { bp:24.2, glucose:19.8, chol:34.8, liver:26.4, kidney:11.8, anemia:7.0, obesity:39.4 },
+    highlight: 'chol',
+    cite: 'GC케어 건강검진 데이터(2026년 1분기)에 따르면, 제조업 종사자의 콜레스테롤 이상 소견율은 34.8%로 전체 업종 평균(28.6%) 대비 6.2%p 높은 것으로 나타났다.',
+    insights: [
+      { icon:'🫀', text:'<strong>콜레스테롤 이상 소견율 34.8%</strong>로 전체 업종 중 최고. 전체 평균(28.6%) 대비 6.2%p 높음.' },
+      { icon:'🩺', text:'신장기능 이상 소견율 <strong>11.8%</strong>로 전체 업종 중 최고. 중금속·화학물질 노출 가능성 등 직업 환경 요인.' },
+      { icon:'⚠️', text:'비만·혈압·혈당·콜레스테롤 <strong>4개 항목 동시 상위</strong>. 대사증후군 고위험군 비율이 타 업종 대비 1.8배.' },
+    ]
+  },
+  retail: {
+    label: '유통·서비스업',
+    color: '#059669',
+    n: '28만 건',
+    companies: '48개사',
+    data: { bp:17.4, glucose:13.8, chol:27.2, liver:18.4, kidney:8.0, anemia:8.8, obesity:32.8 },
+    highlight: 'anemia',
+    cite: 'GC케어 건강검진 데이터(2026년 1분기)에 따르면, 유통·서비스업 종사자의 빈혈 이상 소견율은 8.8%로, 여성 종사자 비율이 높은 업종 특성이 반영된 것으로 분석된다.',
+    insights: [
+      { icon:'🩺', text:'<strong>빈혈 이상 소견율 8.8%</strong>로 전체 업종 중 최고. 여성 종사자 비중 높은 업종 특성 반영.' },
+      { icon:'✅', text:'혈압·혈당 이상 소견율이 전체 업종 평균 <strong>이하로 비교적 양호.</strong>' },
+      { icon:'📊', text:'야간·교대 근무 종사자 비율이 높아 <strong>수면 관련 건강 지표</strong>는 별도 모니터링 필요.' },
+    ]
+  },
+  hospital: {
+    label: '의료·바이오업',
+    color: '#0891b2',
+    n: '14만 건',
+    companies: '28개사',
+    data: { bp:14.2, glucose:11.8, chol:24.4, liver:16.2, kidney:7.2, anemia:10.4, obesity:26.8 },
+    highlight: 'anemia',
+    cite: 'GC케어 건강검진 데이터(2026년 1분기)에 따르면, 의료·바이오업 종사자는 7대 검진 항목 전반에서 전체 업종 최저 수준의 이상 소견율을 기록했다.',
+    insights: [
+      { icon:'✅', text:'7대 항목 전반에서 <strong>전체 업종 최저 수준.</strong> 의료 지식 보유 및 조기 건강 관리 문화의 영향으로 분석.' },
+      { icon:'🩺', text:'빈혈 이상 소견율은 <strong>10.4%</strong>로 타 항목 대비 상대적으로 높음. 야간 근무·의료 현장 종사자 특성 반영.' },
+      { icon:'💡', text:'비만 이상 소견율 26.8%로 <strong>전체 업종 최저.</strong> 다른 업종 대비 4.6%p 낮아 건강관리 모범 업종.' },
+    ]
+  }
+};
+
+const METRICS = ['bp','glucose','chol','liver','kidney','anemia','obesity'];
+const METRIC_KO = { bp:'혈압', glucose:'혈당', chol:'콜레스테롤', liver:'간기능', kidney:'신장기능', anemia:'빈혈', obesity:'비만' };
+const ALL_AVG = IND_DATA.all.data;
+
+let benchChartInst = null;
+let currentIndustry = 'all';
+
+function selectIndustry(key, btn) {
+  document.querySelectorAll('.ind-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  currentIndustry = key;
+  renderBenchmark2();
+}
+
+function renderBenchmark2() {
+  const key = currentIndustry;
+  const ind = IND_DATA[key];
+  const isAll = key === 'all';
+
+  // 제목
+  document.getElementById('benchChartTitle').textContent =
+    isAll ? '전체 업종 — 7대 항목 이상 소견율 비교' : `${ind.label} — 7대 항목 이상 소견율 vs. 전체 평균`;
+
+  // 인용 문구
+  document.getElementById('citeText').textContent = `"${ind.cite}" — GC Health Intelligence, 2026 W11`;
+
+  // KPI
+  const kpiEl = document.getElementById('benchKpi');
+  const vals = ind.data;
+  const topMetric = METRICS.reduce((a,b) => vals[a] > vals[b] ? a : b);
+  const topDiff = Math.round((vals[topMetric] - ALL_AVG[topMetric]) * 10) / 10;
+  kpiEl.innerHTML = `
+    <div style="background:#f8f9fc;border:1px solid #e2e6ee;border-radius:8px;padding:14px;">
+      <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">분석 검진 건수</div>
+      <div style="font-size:22px;font-weight:700;color:#1a1f36;">${ind.n}</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:3px;">${ind.companies} 집계</div>
+    </div>
+    <div style="background:#f8f9fc;border:1px solid #e2e6ee;border-radius:8px;padding:14px;">
+      <div style="font-size:10px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">주목 항목</div>
+      <div style="font-size:22px;font-weight:700;color:${topDiff>0?'#dc2626':'#059669'};">${METRIC_KO[topMetric]}</div>
+      <div style="font-size:11px;color:#9ca3af;margin-top:3px;">${vals[topMetric]}% · 평균比 ${topDiff>0?'+':''}${topDiff}%p</div>
+    </div>
+  `;
+
+  // 인사이트
+  const insEl = document.getElementById('benchInsight');
+  insEl.innerHTML = ind.insights.map(i =>
+    `<div class="insight-item"><div class="insight-icon">${i.icon}</div><div class="insight-text">${i.text}</div></div>`
+  ).join('');
+
+  // 차트
+  if (benchChartInst) benchChartInst.destroy();
+
+  let datasets;
+  if (isAll) {
+    // 전체: 업종별 grouped bar (비만 항목만)
+    const industries = ['bank','construction','it','manufacturing','retail','hospital'];
+    const colors = industries.map(k => IND_DATA[k].color);
+    datasets = [{
+      label: '업종별 비만 이상 소견율 (%)',
+      data: industries.map(k => IND_DATA[k].data.obesity),
+      backgroundColor: industries.map(k => IND_DATA[k].color+'cc'),
+      borderColor: industries.map(k => IND_DATA[k].color),
+      borderWidth: 1.5,
+      borderRadius: 5,
+    },{
+      label: '전체 평균',
+      data: industries.map(() => ALL_AVG.obesity),
+      type: 'line',
+      borderColor: '#f59e0b',
+      borderWidth: 2,
+      borderDash: [5,4],
+      pointRadius: 0,
+      fill: false,
+    }];
+
+    benchChartInst = new Chart(document.getElementById('benchChart'), {
+      type: 'bar',
+      data: {
+        labels: industries.map(k => IND_DATA[k].label),
+        datasets
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom' },
+          title:{ display:true, text:'비만 이상 소견율 업종별 비교 (대표 항목)', font:{size:11}, color:'#9ca3af', padding:{bottom:8} }
+        },
+        scales:{
+          y:{ grid:{color:'#f3f4f6'}, ticks:{callback:v=>v+'%'}, max:50 },
+          x:{ grid:{display:false} }
+        }
+      }
+    });
+  } else {
+    // 특정 업종: 선택 업종 vs 전체 평균, 7대 항목
+    const myVals = METRICS.map(m => ind.data[m]);
+    const avgVals = METRICS.map(m => ALL_AVG[m]);
+
+    benchChartInst = new Chart(document.getElementById('benchChart'), {
+      type: 'bar',
+      data: {
+        labels: METRICS.map(m => METRIC_KO[m]),
+        datasets: [
+          {
+            label: ind.label,
+            data: myVals,
+            backgroundColor: ind.color + 'cc',
+            borderColor: ind.color,
+            borderWidth: 1.5,
+            borderRadius: 5,
+          },
+          {
+            label: '전체 업종 평균',
+            data: avgVals,
+            backgroundColor: '#e2e6ee',
+            borderColor: '#9ca3af',
+            borderWidth: 1.5,
+            borderRadius: 5,
+          }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom' } },
+        scales:{
+          y:{ grid:{color:'#f3f4f6'}, ticks:{callback:v=>v+'%'}, max:50 },
+          x:{ grid:{display:false} }
+        }
+      }
+    });
+  }
+}
+
+// ===================== NEWS CARD SVG THUMBNAILS =====================
+const NEWS_SVGS = [
+  // 1. 건강검진 Q&A — 의사+환자 상담 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><rect width="220" height="120" fill="#e8f4fd"/><rect x="0" y="0" width="220" height="120" fill="url(#g1)"/><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#dbeafe"/><stop offset="100%" stop-color="#bfdbfe"/></linearGradient></defs><circle cx="80" cy="55" r="28" fill="#2563eb" opacity="0.15"/><circle cx="80" cy="55" r="20" fill="#2563eb" opacity="0.25"/><text x="80" y="62" text-anchor="middle" font-size="22" fill="#1d4ed8">❓</text><rect x="112" y="32" width="80" height="18" rx="9" fill="#2563eb" opacity="0.18"/><rect x="112" y="56" width="64" height="14" rx="7" fill="#2563eb" opacity="0.12"/><rect x="112" y="76" width="72" height="14" rx="7" fill="#2563eb" opacity="0.12"/><text x="110" y="104" font-size="9" fill="#1e40af" font-family="sans-serif" font-weight="600">건강검진 Q&amp;A</text></svg>`,
+
+  // 2. 운영 캘린더 — 달력 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><rect width="220" height="120" fill="#fdf4ff"/><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f3e8ff"/><stop offset="100%" stop-color="#e9d5ff"/></linearGradient></defs><rect width="220" height="120" fill="url(#g2)"/><rect x="30" y="25" width="100" height="72" rx="8" fill="#fff" opacity="0.9"/><rect x="30" y="25" width="100" height="20" rx="8" fill="#7c3aed" opacity="0.8"/><rect x="30" y="37" width="100" height="8" fill="#7c3aed" opacity="0.8"/><text x="80" y="36" text-anchor="middle" font-size="9" fill="#fff" font-family="sans-serif" font-weight="700">2026 건강관리 캘린더</text><rect x="38" y="52" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="54" y="52" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="70" y="52" width="12" height="10" rx="2" fill="#7c3aed" opacity="0.5"/><rect x="86" y="52" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="102" y="52" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="38" y="66" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="54" y="66" width="12" height="10" rx="2" fill="#7c3aed" opacity="0.5"/><rect x="70" y="66" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="86" y="66" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="102" y="66" width="12" height="10" rx="2" fill="#7c3aed" opacity="0.5"/><rect x="38" y="80" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="54" y="80" width="12" height="10" rx="2" fill="#ede9fe"/><rect x="70" y="80" width="12" height="10" rx="2" fill="#ede9fe"/><text x="155" y="65" text-anchor="middle" font-size="26" fill="#7c3aed" opacity="0.6">📅</text></svg>`,
+
+  // 3. 인사이트 — 차트·그래프 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><defs><linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f0fdf4"/><stop offset="100%" stop-color="#dcfce7"/></linearGradient></defs><rect width="220" height="120" fill="url(#g3)"/><rect x="25" y="85" width="16" height="22" rx="3" fill="#059669" opacity="0.5"/><rect x="47" y="70" width="16" height="37" rx="3" fill="#059669" opacity="0.65"/><rect x="69" y="55" width="16" height="52" rx="3" fill="#059669" opacity="0.8"/><rect x="91" y="62" width="16" height="45" rx="3" fill="#059669" opacity="0.7"/><rect x="113" y="42" width="16" height="65" rx="3" fill="#10b981"/><polyline points="33,85 55,70 77,55 99,62 121,42" stroke="#065f46" stroke-width="2" fill="none" stroke-dasharray="4,2"/><circle cx="121" cy="42" r="5" fill="#065f46"/><text x="150" y="55" font-size="22" fill="#059669" opacity="0.5">💡</text><text x="25" y="112" font-size="9" fill="#065f46" font-family="sans-serif" font-weight="600">건강관리 인사이트</text></svg>`,
+
+  // 4. 건강증진 프로그램 — 사람들 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><defs><linearGradient id="g4" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff7ed"/><stop offset="100%" stop-color="#fed7aa"/></linearGradient></defs><rect width="220" height="120" fill="url(#g4)"/><circle cx="60" cy="52" r="16" fill="#f97316" opacity="0.3"/><circle cx="110" cy="46" r="20" fill="#f97316" opacity="0.45"/><circle cx="160" cy="52" r="16" fill="#f97316" opacity="0.3"/><text x="60" y="58" text-anchor="middle" font-size="18" fill="#c2410c">🧑</text><text x="110" y="54" text-anchor="middle" font-size="22" fill="#c2410c">👥</text><text x="160" y="58" text-anchor="middle" font-size="18" fill="#c2410c">🧑</text><rect x="30" y="78" width="160" height="6" rx="3" fill="#f97316" opacity="0.2"/><rect x="30" y="78" width="112" height="6" rx="3" fill="#f97316" opacity="0.6"/><text x="110" y="108" text-anchor="middle" font-size="9" fill="#9a3412" font-family="sans-serif" font-weight="600">건강증진 프로그램 선택 트렌드</text></svg>`,
+
+  // 5. 헬스케어 트렌드 — 미래/디지털 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><defs><linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#eff6ff"/><stop offset="100%" stop-color="#dbeafe"/></linearGradient></defs><rect width="220" height="120" fill="url(#g5)"/><circle cx="110" cy="55" r="36" fill="#2563eb" opacity="0.08"/><circle cx="110" cy="55" r="26" fill="#2563eb" opacity="0.1"/><circle cx="110" cy="55" r="16" fill="#2563eb" opacity="0.15"/><text x="110" y="62" text-anchor="middle" font-size="20" fill="#1d4ed8">📊</text><line x1="55" y1="55" x2="85" y2="55" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/><line x1="135" y1="55" x2="165" y2="55" stroke="#2563eb" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.5"/><circle cx="55" cy="55" r="4" fill="#2563eb" opacity="0.4"/><circle cx="165" cy="55" r="4" fill="#2563eb" opacity="0.4"/><text x="40" y="40" font-size="10" fill="#1d4ed8" opacity="0.5" font-family="sans-serif">AI</text><text x="158" y="40" font-size="10" fill="#1d4ed8" opacity="0.5" font-family="sans-serif">DX</text><text x="110" y="104" text-anchor="middle" font-size="9" fill="#1e40af" font-family="sans-serif" font-weight="600">2026 헬스케어 트렌드</text></svg>`,
+
+  // 6. 검진 비용 — 돈/숫자 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><defs><linearGradient id="g6" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fef9c3"/><stop offset="100%" stop-color="#fde68a"/></linearGradient></defs><rect width="220" height="120" fill="url(#g6)"/><rect x="25" y="80" width="18" height="25" rx="3" fill="#d97706" opacity="0.5"/><rect x="50" y="65" width="18" height="40" rx="3" fill="#d97706" opacity="0.6"/><rect x="75" y="50" width="18" height="55" rx="3" fill="#d97706" opacity="0.75"/><rect x="100" y="58" width="18" height="47" rx="3" fill="#d97706" opacity="0.65"/><rect x="125" y="40" width="18" height="65" rx="3" fill="#f59e0b"/><text x="168" y="52" font-size="22" fill="#d97706" opacity="0.7">💰</text><text x="168" y="78" font-size="11" fill="#92400e" font-family="sans-serif" font-weight="700">+12%</text><text x="25" y="112" font-size="9" fill="#92400e" font-family="sans-serif" font-weight="600">건강검진 지원 비용 트렌드</text></svg>`,
+
+  // 7. 임원 검진 — 정장 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><defs><linearGradient id="g7" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#f1f5f9"/><stop offset="100%" stop-color="#e2e8f0"/></linearGradient></defs><rect width="220" height="120" fill="url(#g7)"/><rect x="70" y="20" width="80" height="70" rx="10" fill="#0f2554" opacity="0.08"/><rect x="70" y="20" width="80" height="20" rx="10" fill="#0f2554" opacity="0.5"/><rect x="70" y="32" width="80" height="8" fill="#0f2554" opacity="0.5"/><text x="110" y="36" text-anchor="middle" font-size="9" fill="#fff" font-family="sans-serif" font-weight="700">임원 건강검진 리포트</text><text x="110" y="62" text-anchor="middle" font-size="24" fill="#0f2554" opacity="0.5">🏆</text><text x="80" y="78" font-size="9" fill="#475569" font-family="sans-serif">· 특화 검진 항목 설계</text><text x="80" y="90" font-size="9" fill="#475569" font-family="sans-serif">· 맞춤형 사후 관리</text></svg>`,
+
+  // 8. 만성질환 — 심장/건강 느낌
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 120"><defs><linearGradient id="g8" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#fff1f2"/><stop offset="100%" stop-color="#fecdd3"/></linearGradient></defs><rect width="220" height="120" fill="url(#g8)"/><polyline points="20,60 45,60 55,35 68,82 80,50 92,60 220,60" stroke="#ef4444" stroke-width="2.5" fill="none" stroke-linejoin="round"/><circle cx="55" cy="35" r="4" fill="#dc2626"/><circle cx="80" cy="50" r="4" fill="#dc2626"/><rect x="30" y="75" width="60" height="1" fill="#fca5a5"/><text x="160" y="52" font-size="26" fill="#ef4444" opacity="0.5">❤️</text><text x="155" y="75" font-size="11" fill="#991b1b" font-family="sans-serif" font-weight="700">관리 효과</text><text x="155" y="90" font-size="13" fill="#dc2626" font-family="sans-serif" font-weight="700">-38%</text><text x="25" y="108" font-size="9" fill="#9f1239" font-family="sans-serif" font-weight="600">만성질환 관리 프로그램 효과</text></svg>`,
+];
+
+window.addEventListener('DOMContentLoaded', () => {
+
+// ---- NEWS CARD SVG ILLUSTRATIONS ----
+const newsSvgs = {
+  nimg1: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#e8f4fd"/><rect x="22" y="16" width="82" height="88" rx="7" fill="#fff" stroke="#bfdbfe" stroke-width="1.5"/><rect x="32" y="28" width="62" height="6" rx="3" fill="#93c5fd"/><rect x="32" y="42" width="48" height="4" rx="2" fill="#dbeafe"/><rect x="32" y="52" width="56" height="4" rx="2" fill="#dbeafe"/><rect x="32" y="62" width="42" height="4" rx="2" fill="#dbeafe"/><rect x="32" y="74" width="52" height="4" rx="2" fill="#dbeafe"/><rect x="32" y="84" width="36" height="4" rx="2" fill="#dbeafe"/><circle cx="158" cy="52" r="34" fill="#2563eb" opacity="0.08"/><text x="158" y="44" text-anchor="middle" font-size="26" font-family="Arial,sans-serif" fill="#2563eb" font-weight="800">Q</text><text x="158" y="62" text-anchor="middle" font-size="18" font-family="Arial,sans-serif" fill="#6b7280">&amp;</text><text x="158" y="78" text-anchor="middle" font-size="26" font-family="Arial,sans-serif" fill="#1d40ae" font-weight="800">A</text><rect x="18" y="22" width="10" height="10" rx="3" fill="#2563eb"/><text x="23" y="31" text-anchor="middle" font-size="8" fill="#fff" font-weight="700">✓</text></svg>`,
+
+  nimg2: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#f0fdf4"/><rect x="24" y="10" width="172" height="100" rx="9" fill="#fff" stroke="#bbf7d0" stroke-width="1.5"/><rect x="24" y="10" width="172" height="30" rx="9" fill="#059669"/><rect x="24" y="33" width="172" height="7" fill="#059669"/><text x="110" y="29" text-anchor="middle" font-size="11" font-family="Arial,sans-serif" fill="#fff" font-weight="700">2026 건강관리 캘린더</text><line x1="24" y1="57" x2="196" y2="57" stroke="#d1fae5" stroke-width="1"/><line x1="24" y1="71" x2="196" y2="71" stroke="#d1fae5" stroke-width="1"/><line x1="24" y1="85" x2="196" y2="85" stroke="#d1fae5" stroke-width="1"/><line x1="24" y1="99" x2="196" y2="99" stroke="#d1fae5" stroke-width="1"/><line x1="66" y1="40" x2="66" y2="110" stroke="#d1fae5" stroke-width="1"/><line x1="110" y1="40" x2="110" y2="110" stroke="#d1fae5" stroke-width="1"/><line x1="154" y1="40" x2="154" y2="110" stroke="#d1fae5" stroke-width="1"/><rect x="32" y="59" width="26" height="9" rx="3" fill="#059669" opacity="0.85"/><rect x="76" y="73" width="26" height="9" rx="3" fill="#10b981" opacity="0.85"/><rect x="120" y="59" width="26" height="9" rx="3" fill="#34d399" opacity="0.85"/><rect x="162" y="87" width="26" height="9" rx="3" fill="#059669" opacity="0.85"/><rect x="32" y="87" width="26" height="9" rx="3" fill="#6ee7b7" opacity="0.85"/><rect x="120" y="87" width="26" height="9" rx="3" fill="#10b981" opacity="0.85"/></svg>`,
+
+  nimg3: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#faf5ff"/><rect x="20" y="16" width="180" height="88" rx="8" fill="#fff" stroke="#e9d5ff" stroke-width="1.5"/><polyline points="36,90 62,58 88,71 114,38 144,52 174,22 190,34" stroke="#7c3aed" stroke-width="2.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/><circle cx="114" cy="38" r="5" fill="#7c3aed"/><circle cx="174" cy="22" r="5" fill="#7c3aed"/><circle cx="62" cy="58" r="4" fill="#a78bfa"/><circle cx="144" cy="52" r="4" fill="#a78bfa"/><circle cx="190" cy="34" r="4" fill="#7c3aed"/><line x1="36" y1="90" x2="190" y2="90" stroke="#e9d5ff" stroke-width="1"/><line x1="36" y1="28" x2="36" y2="90" stroke="#e9d5ff" stroke-width="1"/><rect x="96" y="44" width="36" height="16" rx="5" fill="#7c3aed"/><text x="114" y="56" text-anchor="middle" font-size="8" fill="#fff" font-weight="700">인사이트↑</text></svg>`,
+
+  nimg4: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#fff7ed"/><rect x="18" y="62" width="38" height="40" rx="5" fill="#fed7aa"/><rect x="18" y="46" width="38" height="56" rx="5" fill="#fb923c"/><rect x="66" y="38" width="38" height="64" rx="5" fill="#fed7aa"/><rect x="66" y="22" width="38" height="80" rx="5" fill="#ea580c"/><rect x="114" y="48" width="38" height="54" rx="5" fill="#fed7aa"/><rect x="114" y="34" width="38" height="68" rx="5" fill="#f97316"/><rect x="164" y="56" width="38" height="46" rx="5" fill="#fed7aa"/><rect x="164" y="44" width="38" height="58" rx="5" fill="#fb923c"/><line x1="14" y1="103" x2="206" y2="103" stroke="#fdba74" stroke-width="1.5"/><text x="37" y="113" text-anchor="middle" font-size="8" font-family="Arial,sans-serif" fill="#9a3412">1Q</text><text x="85" y="113" text-anchor="middle" font-size="8" font-family="Arial,sans-serif" fill="#9a3412">2Q</text><text x="133" y="113" text-anchor="middle" font-size="8" font-family="Arial,sans-serif" fill="#9a3412">3Q</text><text x="183" y="113" text-anchor="middle" font-size="8" font-family="Arial,sans-serif" fill="#9a3412">4Q</text></svg>`,
+
+  nimg5: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#0f2554"/><circle cx="110" cy="60" r="46" fill="none" stroke="#2563eb" stroke-width="1" opacity="0.3"/><circle cx="110" cy="60" r="32" fill="none" stroke="#3b82f6" stroke-width="1" opacity="0.4"/><circle cx="110" cy="60" r="18" fill="#1e40af" opacity="0.6"/><text x="110" y="56" text-anchor="middle" font-size="12" font-family="Arial,sans-serif" fill="#93c5fd" font-weight="700">2026</text><text x="110" y="70" text-anchor="middle" font-size="8" font-family="Arial,sans-serif" fill="#bfdbfe">헬스케어 트렌드</text><circle cx="110" cy="14" r="5" fill="#4fc3f7"/><circle cx="153" cy="36" r="4" fill="#34d399"/><circle cx="153" cy="84" r="4" fill="#fbbf24"/><circle cx="110" cy="106" r="5" fill="#f87171"/><circle cx="67" cy="84" r="4" fill="#a78bfa"/><circle cx="67" cy="36" r="4" fill="#4fc3f7"/><line x1="110" y1="19" x2="110" y2="42" stroke="#4fc3f7" stroke-width="1.2" opacity="0.6"/><line x1="149" y1="40" x2="128" y2="51" stroke="#34d399" stroke-width="1.2" opacity="0.6"/><line x1="149" y1="80" x2="128" y2="69" stroke="#fbbf24" stroke-width="1.2" opacity="0.6"/><line x1="110" y1="101" x2="110" y2="78" stroke="#f87171" stroke-width="1.2" opacity="0.6"/><line x1="71" y1="80" x2="92" y2="69" stroke="#a78bfa" stroke-width="1.2" opacity="0.6"/><line x1="71" y1="40" x2="92" y2="51" stroke="#4fc3f7" stroke-width="1.2" opacity="0.6"/></svg>`,
+
+  nimg6: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#fefce8"/><circle cx="78" cy="62" r="40" fill="none" stroke="#fde047" stroke-width="14"/><circle cx="78" cy="62" r="40" fill="none" stroke="#eab308" stroke-width="14" stroke-dasharray="100 151" stroke-dashoffset="0" transform="rotate(-90 78 62)"/><circle cx="78" cy="62" r="40" fill="none" stroke="#f59e0b" stroke-width="14" stroke-dasharray="60 151" stroke-dashoffset="-100" transform="rotate(-90 78 62)"/><circle cx="78" cy="62" r="26" fill="#fff"/><text x="78" y="59" text-anchor="middle" font-size="12" font-family="Arial,sans-serif" fill="#92400e" font-weight="700">검진</text><text x="78" y="72" text-anchor="middle" font-size="10" font-family="Arial,sans-serif" fill="#b45309">비용</text><rect x="134" y="28" width="10" height="10" rx="2" fill="#eab308"/><text x="149" y="37" font-size="9" font-family="Arial,sans-serif" fill="#78350f">일반검진 42%</text><rect x="134" y="46" width="10" height="10" rx="2" fill="#f59e0b"/><text x="149" y="55" font-size="9" font-family="Arial,sans-serif" fill="#78350f">종합검진 31%</text><rect x="134" y="64" width="10" height="10" rx="2" fill="#fde047"/><text x="149" y="73" font-size="9" font-family="Arial,sans-serif" fill="#78350f">임원검진 27%</text></svg>`,
+
+  nimg7: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#eff6ff"/><rect x="52" y="10" width="116" height="100" rx="9" fill="#fff" stroke="#bfdbfe" stroke-width="1.5"/><rect x="52" y="10" width="116" height="32" rx="9" fill="#1d40ae"/><rect x="52" y="34" width="116" height="8" fill="#1d40ae"/><text x="110" y="30" text-anchor="middle" font-size="11" font-family="Arial,sans-serif" fill="#fff" font-weight="700">임원 검진 리포트</text><circle cx="110" cy="70" r="18" fill="#dbeafe"/><text x="110" y="77" text-anchor="middle" font-size="22" font-family="Arial,sans-serif">👔</text><rect x="70" y="94" width="80" height="5" rx="2.5" fill="#bfdbfe"/><rect x="78" y="103" width="64" height="4" rx="2" fill="#dbeafe"/><circle cx="66" cy="18" r="5" fill="#fbbf24"/><circle cx="154" cy="18" r="5" fill="#fbbf24"/></svg>`,
+
+  nimg8: `<svg viewBox="0 0 220 120" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="220" height="120" fill="#fff1f2"/><path d="M110 96 C110 96 52 66 52 40 C52 25 64 16 78 16 C91 16 101 28 110 42 C119 28 129 16 142 16 C156 16 168 25 168 40 C168 66 110 96 110 96Z" fill="#fecdd3"/><path d="M110 82 C110 82 66 60 66 40 C66 30 73 24 82 24 C93 24 103 36 110 50 C117 36 127 24 138 24 C147 24 154 30 154 40 C154 60 110 82 110 82Z" fill="#fb7185"/><path d="M110 68 C110 68 80 54 80 40 C80 34 85 30 92 30 C100 30 108 42 110 54 C112 42 120 30 128 30 C135 30 140 34 140 40 C140 54 110 68 110 68Z" fill="#f43f5e"/><text x="110" y="113" text-anchor="middle" font-size="9" font-family="Arial,sans-serif" fill="#9f1239" font-weight="600">만성질환 관리 효과 분석</text></svg>`
+};
+
+Object.entries(newsSvgs).forEach(([id, svg]) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.innerHTML = svg;
+    el.style.background = 'none';
+  }
+});
+
+  renderBenchmark2();
+  onSidoChange(); // 시/도 초기 구/시/군 목록 세팅
+  // regionChart는 B2H 탭 전환 시 초기화 (hidden 상태에서 초기화 불가)
+});
+
+// ===================== REGION DISEASE DATA =====================
+const DISTRICT_DATA = {
+  seocho: { name:'서초구', diseases:[
+    {disease:'장염·식중독', change:'+34%', action:'대장내시경 필요성 문자 안내 발송 — 이번 주가 적기', color:'#fca5a5', icon:'🦠'},
+    {disease:'피부염·습진', change:'+22%', action:'보습 치료 패키지 + 보조제 병행 추천 안내', color:'#fed7aa', icon:'🩺'},
+    {disease:'알레르기 비염', change:'+18%', action:'면역치료 상담 + 면역강화 수액 연계', color:'#fed7aa', icon:'🌸'},
+    {disease:'급성 인후염', change:'+11%', action:'독감 사전 접종 함께 안내', color:'#fef08a', icon:'🤒'},
+  ]},
+  gangnam: { name:'강남구', diseases:[
+    {disease:'장염·식중독', change:'+31%', action:'대장내시경 + 위내시경 패키지 선제 안내', color:'#fca5a5', icon:'🦠'},
+    {disease:'피부 트러블', change:'+19%', action:'환절기 피부 레이저 비급여 프로모션 적기', color:'#fed7aa', icon:'✨'},
+    {disease:'두통·편두통', change:'+15%', action:'영양수액(마그네슘) 연계 처방 추천', color:'#fef08a', icon:'🧠'},
+    {disease:'허리 통증', change:'+9%', action:'도수치료·체외충격파 패키지 안내', color:'#fef08a', icon:'🦴'},
+  ]},
+  mapo: { name:'마포구', diseases:[
+    {disease:'피부염', change:'+22%', action:'아토피·건선 치료 패키지 안내', color:'#fca5a5', icon:'🩺'},
+    {disease:'근골격 통증', change:'+16%', action:'도수치료·물리치료 비급여 수요 타겟', color:'#fed7aa', icon:'🦴'},
+    {disease:'소화불량', change:'+12%', action:'위내시경 검진 필요성 상담 연계', color:'#fef08a', icon:'🫀'},
+    {disease:'알레르기', change:'+8%', action:'면역치료 + 항히스타민 처방 증가 예고', color:'#fef08a', icon:'🌸'},
+  ]},
+  songpa: { name:'송파구', diseases:[
+    {disease:'장염', change:'+19%', action:'대장내시경 안내. 소아과도 급증 — 가족 검진 패키지', color:'#fca5a5', icon:'🦠'},
+    {disease:'비염', change:'+14%', action:'봄 시즌 면역치료 조기 시작 안내', color:'#fed7aa', icon:'🌸'},
+    {disease:'결막염', change:'+11%', action:'안구건조증 연계 — 안과 틈새 수요', color:'#fef08a', icon:'👁'},
+    {disease:'고혈압 관리', change:'+6%', action:'만성질환 정기 관리 환자 이탈 방지 강화', color:'#fef08a', icon:'❤️'},
+  ]},
+  yongsan: { name:'용산구', diseases:[
+    {disease:'알레르기 비염', change:'+14%', action:'면역치료 + 항히스타민 패키지 준비', color:'#fed7aa', icon:'🌸'},
+    {disease:'근육통', change:'+12%', action:'외국인 거주 비율 高 — 다국어 안내 강점', color:'#fef08a', icon:'🦴'},
+    {disease:'피로증후군', change:'+10%', action:'영양수액·비타민 수액 비급여 수요 타겟', color:'#fef08a', icon:'💊'},
+    {disease:'소화기', change:'+7%', action:'식습관 변화 시즌 — 위장약 처방 선제 대응', color:'#fef08a', icon:'🫀'},
+  ]},
+  gwanak: { name:'관악구', diseases:[
+    {disease:'독감 의심', change:'+8%', action:'독감 시즌 선행 신호 — 백신 재고 점검 권장', color:'#fef08a', icon:'🤒'},
+    {disease:'근골격 통증', change:'+6%', action:'20-30대 직장인 多 — 거북목·허리 도수 수요', color:'#fef08a', icon:'🦴'},
+    {disease:'피부 트러블', change:'+4%', action:'소폭 증가. 환절기 기초 치료 안내 준비', color:'#fef08a', icon:'🩺'},
+    {disease:'고혈압', change:'-1%', action:'만성질환 관리 환자 이탈 점검 시점', color:'#e2e8f0', icon:'❤️'},
+  ]},
+};
+
+// 시/도 → 구/시/군 매핑
+const SIDO_MAP = {
+  seoul:    ['강남구','강동구','강북구','강서구','관악구','광진구','구로구','금천구','노원구','도봉구','동대문구','동작구','마포구','서대문구','서초구','성동구','성북구','송파구','양천구','영등포구','용산구','은평구','종로구','중구','중랑구'],
+  gyeonggi: ['수원시','성남시','용인시','고양시','화성시','부천시','남양주시','안산시','평택시','의정부시','안양시','시흥시','파주시','김포시','광명시','광주시','군포시','하남시','오산시','이천시','양주시','구리시','안성시','포천시','의왕시','여주시','동두천시','과천시','가평군','양평군','연천군'],
+  busan:    ['강서구','금정구','기장군','남구','동구','동래구','부산진구','북구','사상구','사하구','서구','수영구','연제구','영도구','중구','해운대구'],
+  incheon:  ['강화군','계양구','남동구','동구','미추홀구','부평구','서구','연수구','옹진군','중구'],
+  daegu:    ['남구','달서구','달성군','동구','북구','서구','수성구','중구'],
+  daejeon:  ['대덕구','동구','서구','유성구','중구'],
+  gwangju:  ['광산구','남구','동구','북구','서구'],
+  ulsan:    ['남구','동구','북구','울주군','중구'],
+  gangwon:  ['강릉시','고성군','동해시','삼척시','속초시','양구군','양양군','영월군','원주시','인제군','정선군','철원군','춘천시','태백시','평창군','홍천군','화천군','횡성군'],
+  chungbuk: ['괴산군','단양군','보은군','영동군','옥천군','음성군','제천시','증평군','진천군','청주시','충주시'],
+  chungnam: ['계룡시','공주시','금산군','논산시','당진시','보령시','부여군','서산시','서천군','아산시','예산군','천안시','청양군','태안군','홍성군'],
+  jeonbuk:  ['고창군','군산시','김제시','남원시','무주군','부안군','순창군','완주군','익산시','임실군','장수군','전주시','정읍시','진안군'],
+  jeonnam:  ['강진군','고흥군','곡성군','광양시','구례군','나주시','담양군','목포시','무안군','보성군','순천시','신안군','여수시','영광군','영암군','완도군','장성군','장흥군','진도군','함평군','해남군','화순군'],
+  gyeongbuk:['경산시','경주시','고령군','구미시','군위군','김천시','문경시','봉화군','상주시','성주군','안동시','영덕군','영양군','영주시','영천시','예천군','울릉군','울진군','의성군','청도군','청송군','칠곡군','포항시'],
+  gyeongnam:['거제시','거창군','고성군','김해시','남해군','밀양시','사천시','산청군','양산시','의령군','진주시','창녕군','창원시','하동군','함안군','함양군','합천군'],
+  jeju:     ['서귀포시','제주시'],
+};
+
+const SIDO_LABELS = {
+  seoul:'서울', gyeonggi:'경기', busan:'부산', incheon:'인천',
+  daegu:'대구', daejeon:'대전', gwangju:'광주', ulsan:'울산',
+  gangwon:'강원', chungbuk:'충북', chungnam:'충남',
+  jeonbuk:'전북', jeonnam:'전남', gyeongbuk:'경북', gyeongnam:'경남', jeju:'제주'
+};
+
+function onSidoChange() {
+  const sido = document.getElementById('sidoSelect').value;
+  const sigunguSel = document.getElementById('sigunguSelect');
+  sigunguSel.innerHTML = '';
+  (SIDO_MAP[sido] || []).forEach(sg => {
+    const opt = document.createElement('option');
+    opt.value = sg;
+    opt.textContent = sg;
+    sigunguSel.appendChild(opt);
+  });
+  renderRegionDisease();
+}
+
+function renderRegionDisease() {
+  const sido = document.getElementById('sidoSelect');
+  const sigungu = document.getElementById('sigunguSelect');
+  if (!sido || !sigungu) return;
+
+  const sidoLabel = SIDO_LABELS[sido.value] || sido.value;
+  const sgLabel = sigungu.value || '';
+  const fullKey = sigungu.value;
+
+  // 기존 DISTRICT_DATA에 있으면 그거 쓰고, 없으면 샘플 생성
+  const knownKeys = { '서초구':'seocho','강남구':'gangnam','마포구':'mapo','송파구':'songpa','용산구':'yongsan','관악구':'gwanak' };
+  const dataKey = knownKeys[fullKey];
+  const data = dataKey ? DISTRICT_DATA[dataKey] : null;
+
+  const el = document.getElementById('regionDiseaseList');
+  if (!el) return;
+
+  // 패널 헤더 업데이트
+  const titleEl = document.querySelector('#regionDiseaseList')?.closest('.panel')?.querySelector('.panel-title');
+  if (titleEl) titleEl.textContent = `${sidoLabel} ${sgLabel} — 급증 질환 & 경영 액션`;
+
+  const diseases = data ? data.diseases : [
+    {disease:'알레르기 비염', change:'+16%', action:'봄 시즌 면역치료 조기 시작 안내', color:'#fed7aa', icon:'🌸'},
+    {disease:'피부염·습진', change:'+12%', action:'환절기 보습 치료 패키지 안내', color:'#fed7aa', icon:'🩺'},
+    {disease:'급성 인후염', change:'+9%', action:'독감 사전 접종 함께 안내', color:'#fef08a', icon:'🤒'},
+    {disease:'근골격 통증', change:'+7%', action:'도수치료·체외충격파 패키지 안내', color:'#fef08a', icon:'🦴'},
+  ];
+
+  el.innerHTML = diseases.map(d => `
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:7px;background:${d.color}33;border:1px solid ${d.color}99;margin-bottom:7px;">
+      <span style="font-size:20px;flex-shrink:0;">${d.icon}</span>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+          <span style="font-size:13px;font-weight:700;color:#1a1f36;">${d.disease}</span>
+          <span style="font-size:12px;font-weight:700;color:#dc2626;">${d.change}</span>
+          <span style="font-size:10px;color:#6b7280;">전주比</span>
+        </div>
+        <div style="font-size:11px;color:#2563eb;font-weight:500;">📌 ${d.action}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// TAB SWITCH
+function switchTab(tab, el) {
+  document.querySelectorAll('.gnb-tab').forEach(t => t.classList.remove('active'));
+  if (el && el.classList.contains('gnb-tab')) el.classList.add('active');
+
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+
+  ['b2b','b2h','datasource'].forEach(t => {
+    const sn = document.getElementById('subnav-' + t);
+    if (sn) sn.style.display = t === tab ? 'flex' : 'none';
+  });
+
+  // B2H 탭 열릴 때 지역 차트 초기화 (hidden 상태에서 Chart.js 초기화 불가)
+  if (tab === 'b2h') {
+    setTimeout(() => buildRegionChart('top', null), 50);
+  }
+}
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const top = el.getBoundingClientRect().top + window.scrollY - 108;
+  window.scrollTo({ top, behavior: 'smooth' });
+
+  const parent = el.closest('.tab-content');
+  if (!parent) return;
+  const key = parent.id.replace('tab-', '');
+  const subnav = document.getElementById('subnav-' + key);
+  if (!subnav) return;
+  subnav.querySelectorAll('.subnav-item').forEach(item => {
+    const targetId = (item.getAttribute('onclick') || '').match(/'([^']+)'/)?.[1];
+    item.classList.toggle('active', targetId === id);
+  });
+}
+
+// 스크롤 스파이 — 스크롤 위치에 따라 서브탭 active 자동 변경
+const SECTION_MAP = {
+  'tab-b2b':         ['sec-seven','sec-industry','sec-risk','sec-news'],
+  'tab-b2h':         ['sec-region-disease','sec-trend','sec-season','sec-noncovered','sec-region'],
+  'tab-datasource':  ['sec-gccare-db','sec-alphan-db','sec-methodology']
+};
+
+function updateSubnavOnScroll() {
+  const activeTab = document.querySelector('.tab-content.active');
+  if (!activeTab) return;
+  const key = activeTab.id.replace('tab-', '');
+  const sections = SECTION_MAP[activeTab.id] || [];
+  const subnav = document.getElementById('subnav-' + key);
+  if (!subnav) return;
+
+  let current = sections[0];
+  for (const id of sections) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (el.getBoundingClientRect().top <= 120) current = id;
+  }
+
+  subnav.querySelectorAll('.subnav-item').forEach(item => {
+    const targetId = (item.getAttribute('onclick') || '').match(/'([^']+)'/)?.[1];
+    item.classList.toggle('active', targetId === current);
+  });
+}
+
+window.addEventListener('scroll', updateSubnavOnScroll, { passive: true });
+
+function switchReportTab(tab, el) {
+  // 서브탭 active
+  const subnav = document.getElementById('subnav-report');
+  if (subnav) subnav.querySelectorAll('.subnav-item').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  // 콘텐츠 전환
+  ['monthly','annual'].forEach(t => {
+    const el = document.getElementById('report-' + t);
+    if (el) el.style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+function openSubscribeModal() { document.getElementById('subscribeModal').classList.add('open'); }
+function openModal() { document.getElementById('pressModal').classList.add('open'); }
+function handleSubscribe() {
+  const btn = event.currentTarget;
+  btn.textContent = '✓ 구독 신청 완료!';
+  btn.style.background = '#059669';
+  setTimeout(() => document.getElementById('subscribeModal').classList.remove('open'), 1800);
+}
+function openModal(){document.getElementById('pressModal').classList.add('open');}
+
+// CHART DEFAULTS
+Chart.defaults.font.family="'Noto Sans KR',sans-serif";
+Chart.defaults.font.size=11;
+Chart.defaults.color='#6b7280';
+Chart.defaults.plugins.legend.labels.boxWidth=11;
+Chart.defaults.plugins.legend.labels.padding=10;
+
+// ---- B2B CHARTS ----
+
+// 1. 7대 항목 추이 (라인)
+new Chart(document.getElementById('sevenTrendChart'),{
+  type:'line',
+  data:{
+    labels:['2022','2023','2024','2025','2026 Q1'],
+    datasets:[
+      {label:'비만',data:[28.4,30.1,31.8,33.0,34.2],borderColor:'#dc2626',backgroundColor:'rgba(220,38,38,0.06)',tension:0.4,borderWidth:2,pointRadius:3,fill:true},
+      {label:'콜레스테롤',data:[28.8,29.4,30.0,30.8,31.2],borderColor:'#d97706',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'간기능',data:[21.4,22.2,23.1,24.0,24.8],borderColor:'#7c3aed',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'혈압',data:[18.9,19.8,20.6,21.4,22.4],borderColor:'#ef4444',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'혈당',data:[13.2,14.4,15.8,17.2,18.7],borderColor:'#f59e0b',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom'}},
+    scales:{y:{grid:{color:'#f3f4f6'},ticks:{callback:v=>v+'%'}},x:{grid:{display:false}}}
+  }
+});
+
+
+// 5. 관리 대상별 기업 손실 비용 (묶음 막대)
+new Chart(document.getElementById('riskCostChart'),{
+  type:'bar',
+  data:{
+    labels:['건설업','IT업','금융업','제조업','서비스업','유통업'],
+    datasets:[
+      {label:'관리 필요 인원 비율 (%)',data:[58.2,52.4,48.8,62.1,41.3,44.6],backgroundColor:'rgba(37,99,235,0.75)',borderRadius:4,yAxisID:'y'},
+      {label:'1인당 연간 손실 추정 (만원)',data:[142,118,124,156,98,104],backgroundColor:'rgba(15,37,84,0.65)',borderRadius:4,yAxisID:'y1'}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{padding:12,boxWidth:11}}},
+    scales:{
+      y:{grid:{color:'#f3f4f6'},ticks:{callback:v=>v+'%',font:{size:10}},position:'left'},
+      y1:{grid:{display:false},ticks:{callback:v=>v+'만',font:{size:10}},position:'right'},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// ---- B2H CHARTS ----
+
+// 6. 월별 진료과목 트렌드
+new Chart(document.getElementById('monthlyTrendChart'),{
+  type:'line',
+  data:{
+    labels:['10월','11월','12월','1월','2월','3월'],
+    datasets:[
+      {label:'피부과',data:[88,90,92,96,106,118],borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,0.08)',tension:0.4,borderWidth:2,pointRadius:3,fill:true},
+      {label:'이비인후과',data:[110,118,125,114,108,114],borderColor:'#7c3aed',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'내과',data:[100,104,108,102,104,107],borderColor:'#059669',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'정형외과',data:[106,104,102,100,98,98],borderColor:'#f59e0b',backgroundColor:'transparent',tension:0.4,borderWidth:1.5,borderDash:[4,3],pointRadius:3},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom'}},
+    scales:{y:{grid:{color:'#f3f4f6'},ticks:{callback:v=>v}},x:{grid:{display:false}}}
+  }
+});
+
+// 7. 비급여 트렌드
+new Chart(document.getElementById('noncoveredChart'),{
+  type:'line',
+  data:{
+    labels:['10월','11월','12월','1월','2월','3월'],
+    datasets:[
+      {label:'도수치료',data:[88,91,94,96,100,109],borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,0.08)',tension:0.4,borderWidth:2,pointRadius:3,fill:true},
+      {label:'피부 레이저',data:[92,90,88,94,98,106],borderColor:'#ec4899',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'영양수액',data:[84,86,90,92,98,104],borderColor:'#059669',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'두피·탈모',data:[78,80,84,88,96,101],borderColor:'#d97706',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+      {label:'체외충격파',data:[90,92,96,98,98,104],borderColor:'#0891b2',backgroundColor:'transparent',tension:0.4,borderWidth:2,pointRadius:3},
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{padding:14,boxWidth:11}}},
+    scales:{
+      y:{grid:{color:'#f3f4f6'},ticks:{font:{size:10}}},
+      x:{grid:{display:false},ticks:{font:{size:10}}}
+    }
+  }
+});
+
+// 8. 예방접종 수요
+new Chart(document.getElementById('vaccineChart'),{
+  type:'bar',
+  data:{
+    labels:['10월','11월','12월','1월','2월','3월'],
+    datasets:[
+      {label:'독감백신',data:[142,180,95,42,28,38],backgroundColor:'rgba(37,99,235,0.75)',borderRadius:4},
+      {label:'폐렴구균',data:[48,52,46,44,42,46],backgroundColor:'rgba(5,150,105,0.7)',borderRadius:4},
+      {label:'대상포진',data:[38,42,40,36,38,42],backgroundColor:'rgba(217,119,6,0.7)',borderRadius:4},
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom'}},
+    scales:{y:{grid:{color:'#f3f4f6'},stacked:false},x:{grid:{display:false}}}
+  }
+});
+
+// 9. 지역 분포 — 2-depth 드릴다운
+const REGION_DATA = {
+  top: {
+    labels: ['서울', '경기', '부산', '인천', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'],
+    data:   [  28.4,   22.1,    8.2,    7.2,    5.8,    3.4,    3.2,    2.4,    0.6,    1.8,    1.6,    2.0,    2.2,    2.0,    2.4,    3.6,    1.1],
+  },
+  sub: {
+    '서울':  { labels:['강남구','송파구','마포구','강서구','노원구','관악구','서초구','영등포구','종로구','중구'], data:[12.4,9.8,8.6,7.4,6.8,6.2,8.8,7.2,5.4,4.2] },
+    '경기':  { labels:['수원시','성남시','용인시','고양시','화성시','부천시','남양주시','안산시','평택시','의정부시'], data:[14.2,11.8,10.4,9.6,8.8,7.6,7.2,6.8,6.4,5.8] },
+    '부산':  { labels:['해운대구','부산진구','동래구','남구','북구','사하구','금정구','연제구','수영구','사상구'], data:[18.4,14.2,12.8,10.6,9.4,8.8,8.2,7.6,7.0,6.4] },
+    '인천':  { labels:['남동구','부평구','연수구','서구','미추홀구','계양구','중구','동구','강화군'], data:[16.8,15.4,13.2,12.6,10.8,9.4,7.2,5.6,3.8] },
+    '대구':  { labels:['수성구','달서구','북구','중구','동구','서구','남구','달성군'], data:[20.4,16.8,14.2,12.6,10.8,9.2,8.6,7.4] },
+    '광주':  { labels:['북구','광산구','서구','남구','동구'], data:[22.4,20.8,18.6,16.4,14.2] },
+    '대전':  { labels:['서구','유성구','중구','동구','대덕구'], data:[24.6,22.4,18.8,16.2,14.0] },
+    '울산':  { labels:['남구','북구','중구','울주군','동구'], data:[26.2,22.8,18.4,14.6,12.8] },
+    '강원':  { labels:['춘천시','원주시','강릉시','동해시','속초시'], data:[28.4,24.6,20.8,16.4,14.2] },
+    '충북':  { labels:['청주시','충주시','제천시','음성군','진천군'], data:[30.2,24.8,18.6,14.4,12.8] },
+    '충남':  { labels:['천안시','아산시','서산시','당진시','논산시'], data:[28.6,22.4,16.8,14.2,12.4] },
+    '전북':  { labels:['전주시','익산시','군산시','정읍시','남원시'], data:[32.4,24.6,18.8,14.2,12.6] },
+    '전남':  { labels:['순천시','여수시','목포시','광양시','나주시'], data:[30.8,26.4,22.2,16.8,14.4] },
+    '경북':  { labels:['포항시','경주시','구미시','안동시','경산시'], data:[28.4,22.6,20.4,16.8,14.2] },
+    '경남':  { labels:['창원시','김해시','진주시','양산시','거제시'], data:[24.8,20.4,16.8,14.2,12.6] },
+    '제주':  { labels:['제주시','서귀포시'], data:[62.4,37.6] },
+    '세종':  { labels:['세종시'], data:[100] },
+  }
+};
+
+const REGION_COLORS = ['#1d4ed8','#2563eb','#3b82f6','#4f8ef7','#60a5fa','#7ab8fb','#93c5fd','#a8d0fe','#bfdbfe','#cfe5ff','#dbeafe','#e4edff','#eff6ff','#f0f5ff','#eef3ff','#eaf0ff','#e8edff'];
+
+let regionChartInst = null;
+let regionCurrentLevel = 'top';
+
+function buildRegionChart(level, key) {
+  if (regionChartInst) regionChartInst.destroy();
+
+  const isTop = level === 'top';
+  const dataset = isTop ? REGION_DATA.top : REGION_DATA.sub[key];
+  if (!dataset) return;
+
+  const total = dataset.data.reduce((a,b)=>a+b, 0);
+  const pcts  = dataset.data.map(v => Math.round(v / total * 1000) / 10);
+
+  document.getElementById('regionChartTitle').textContent =
+    isTop ? '시/도별 의원 분포' : `${key} — 시/군/구별 의원 분포`;
+  document.getElementById('regionChartSub').textContent =
+    isTop ? '시/도 클릭 시 하위 구/시/군으로 드릴다운' : `${key} 내 세부 지역별 비중`;
+
+  const breadcrumb = document.getElementById('regionBreadcrumb');
+  breadcrumb.style.display = isTop ? 'none' : 'inline-block';
+
+  regionChartInst = new Chart(document.getElementById('regionChart'), {
+    type: 'bar',
+    data: {
+      labels: dataset.labels,
+      datasets: [{
+        label: '의원 비중 (%)',
+        data: pcts,
+        backgroundColor: isTop
+          ? REGION_COLORS.slice(0, dataset.labels.length)
+          : Array(dataset.labels.length).fill('#2563eb').map((_,i)=>`rgba(37,99,235,${0.4+i*0.06})`),
+        borderRadius: 4,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      onClick: (e, elements) => {
+        if (!isTop || !elements.length) return;
+        const idx = elements[0].index;
+        const region = dataset.labels[idx];
+        if (REGION_DATA.sub[region]) {
+          regionCurrentLevel = 'sub';
+          buildRegionChart('sub', region);
+        }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y}%`,
+            afterLabel: () => isTop ? '  클릭하여 세부 지역 확인 →' : ''
+          }
+        }
+      },
+      scales: {
+        y: {
+          grid: { color: '#f3f4f6' },
+          ticks: { callback: v => v+'%', font:{size:10} },
+        },
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: isTop ? 9 : 10 }, maxRotation: isTop ? 45 : 0 }
+        }
+      },
+      cursor: isTop ? 'pointer' : 'default'
+    }
+  });
+
+  // 클릭 커서
+  const canvas = document.getElementById('regionChart');
+  canvas.style.cursor = isTop ? 'pointer' : 'default';
+}
+
+function resetRegionChart() {
+  regionCurrentLevel = 'top';
+  buildRegionChart('top', null);
+}
+
+</script>
+</div><!-- /.main -->
+</div><!-- /.layout -->
+</body>
+</html>
