@@ -1040,11 +1040,34 @@ function handleSubscribe() {
 
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4U2dNKFvwvMFlTYxauju4PLai19akYlCjrNIrXdAsVKWUsykffWvh3RI4Im3zIcREjA/exec';
 
-  const params = new URLSearchParams({ name, company, email, b2b, b2h });
-  const img = new Image();
-  img.src = SCRIPT_URL + '?' + params.toString();
+  // hidden iframe으로 CORS 우회
+  let iframe = document.getElementById('sub-iframe');
+  if (!iframe) {
+    iframe = document.createElement('iframe');
+    iframe.id = 'sub-iframe';
+    iframe.name = 'sub-iframe';
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+  }
 
-  // 성공으로 처리 (no-cors 우회)
+  const form = document.createElement('form');
+  form.method = 'GET';
+  form.action = SCRIPT_URL;
+  form.target = 'sub-iframe';
+
+  [['name', name], ['company', company], ['email', email],
+   ['b2b', b2b], ['b2h', b2h]].forEach(([k, v]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = k;
+    input.value = v;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+
   setTimeout(() => {
     btn.textContent = '구독 신청 완료!';
     btn.style.background = '#059669';
@@ -1053,7 +1076,7 @@ function handleSubscribe() {
     document.getElementById('sub-company').value = '';
     document.getElementById('sub-email').value = '';
     setTimeout(() => document.getElementById('subscribeModal').classList.remove('open'), 1800);
-  }, 800);
+  }, 1000);
 }
 function openModal(){document.getElementById('pressModal').classList.add('open');}
 
