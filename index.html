@@ -529,8 +529,8 @@ canvas { display:block; width:100%!important; }
  </div><div style="font-size:11px;color:#9ca3af;text-align:right;">
  © 2026 GC Holdings<br>
  언론 인용 문의: press@gc-intelligence.co.kr
- </div></div></div><!-- SUBSCRIBE MODAL --><div class="modal-overlay" id="subscribeModal" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal" style="max-width:460px;"><button class="modal-close" onclick="document.getElementById('subscribeModal').classList.remove('open')"></button><div style="text-align:center;margin-bottom:20px;"><div style="font-size:32px;margin-bottom:10px;"></div><div class="modal-eyebrow" style="justify-content:center;display:flex;">GC Health Intelligence</div><div class="modal-title" style="font-size:20px;">주간 헬스 인텔리전스 구독</div><div style="font-size:13px;color:#6b7280;line-height:1.7;margin-top:6px;">매주 일요일, 국내 기업 임직원 건강 트렌드와<br>의료기관 경영 인사이트를 이메일로 받아보세요.</div></div><div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;"><div style="display:flex;gap:8px;"><div style="flex:1;"><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">이름</div><input type="text" placeholder="홍길동" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'"></div><div style="flex:1;"><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">소속</div><input type="text" placeholder="GC케어" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'"></div></div><div><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">이메일 *</div><input type="email" placeholder="example@company.com" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'"></div><div><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:8px;">관심 트랙</div><div style="display:flex;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;cursor:pointer;padding:7px 14px;border:1px solid #e2e6ee;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2e6ee'"><input type="checkbox" checked style="accent-color:#2563eb;"> B2B 기업건강
- </label><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;cursor:pointer;padding:7px 14px;border:1px solid #e2e6ee;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2e6ee'"><input type="checkbox" checked style="accent-color:#2563eb;"> B2H 의료기관
+ </div></div></div><!-- SUBSCRIBE MODAL --><div class="modal-overlay" id="subscribeModal" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal" style="max-width:460px;"><button class="modal-close" onclick="document.getElementById('subscribeModal').classList.remove('open')"></button><div style="text-align:center;margin-bottom:20px;"><div style="font-size:32px;margin-bottom:10px;"></div><div class="modal-eyebrow" style="justify-content:center;display:flex;">GC Health Intelligence</div><div class="modal-title" style="font-size:20px;">주간 헬스 인텔리전스 구독</div><div style="font-size:13px;color:#6b7280;line-height:1.7;margin-top:6px;">매주 일요일, 국내 기업 임직원 건강 트렌드와<br>의료기관 경영 인사이트를 이메일로 받아보세요.</div></div><div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;"><div style="display:flex;gap:8px;"><div style="flex:1;"><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">이름</div><input type="text" id="sub-name" placeholder="홍길동" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'"></div><div style="flex:1;"><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">소속</div><input type="text" id="sub-company" placeholder="GC케어" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'"></div></div><div><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:5px;">이메일 *</div><input type="email" id="sub-email" placeholder="example@company.com" style="width:100%;padding:9px 12px;border:1px solid #e2e6ee;border-radius:7px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;color:#1a1f36;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e6ee'"></div><div><div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:8px;">관심 트랙</div><div style="display:flex;gap:8px;"><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;cursor:pointer;padding:7px 14px;border:1px solid #e2e6ee;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2e6ee'"><input type="checkbox" id="sub-b2b" checked style="accent-color:#2563eb;"> B2B 기업건강
+ </label><label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;cursor:pointer;padding:7px 14px;border:1px solid #e2e6ee;border-radius:7px;transition:all 0.15s;" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2e6ee'"><input type="checkbox" id="sub-b2h" checked style="accent-color:#2563eb;"> B2H 의료기관
  </label></div></div></div><button onclick="handleSubscribe()" style="width:100%;background:#0f2554;color:#fff;border:none;font-family:'Noto Sans KR',sans-serif;font-size:14px;font-weight:700;padding:12px;border-radius:8px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background='#1a3a7a'" onmouseout="this.style.background='#0f2554'">
  무료 구독하기
  </button><div style="text-align:center;margin-top:12px;font-size:11px;color:#9ca3af;">
@@ -1023,10 +1023,45 @@ function switchReportTab(tab, el) {
 function openSubscribeModal() { document.getElementById('subscribeModal').classList.add('open'); }
 function openModal() { document.getElementById('pressModal').classList.add('open'); }
 function handleSubscribe() {
- const btn = event.currentTarget;
- btn.textContent = ' 구독 신청 완료!';
- btn.style.background = '#059669';
- setTimeout(() => document.getElementById('subscribeModal').classList.remove('open'), 1800);
+  const btn = event.currentTarget;
+  const name    = document.getElementById('sub-name')?.value.trim() || '';
+  const company = document.getElementById('sub-company')?.value.trim() || '';
+  const email   = document.getElementById('sub-email')?.value.trim() || '';
+  const b2b     = document.getElementById('sub-b2b')?.checked || false;
+  const b2h     = document.getElementById('sub-b2h')?.checked || false;
+
+  if (!email) {
+    alert('이메일을 입력해주세요.');
+    return;
+  }
+
+  btn.textContent = '전송 중...';
+  btn.disabled = true;
+
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4U2dNKFvwvMFlTYxauju4PLai19akYlCjrNIrXdAsVKWUsykffWvh3RI4Im3zIcREjA/exec';
+
+  fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, company, email, b2b, b2h })
+  })
+  .then(() => {
+    btn.textContent = '구독 신청 완료!';
+    btn.style.background = '#059669';
+    btn.disabled = false;
+    // 입력값 초기화
+    document.getElementById('sub-name').value = '';
+    document.getElementById('sub-company').value = '';
+    document.getElementById('sub-email').value = '';
+    setTimeout(() => document.getElementById('subscribeModal').classList.remove('open'), 1800);
+  })
+  .catch(() => {
+    btn.textContent = '무료 구독하기';
+    btn.style.background = '#0f2554';
+    btn.disabled = false;
+    alert('오류가 발생했습니다. 다시 시도해주세요.');
+  });
 }
 function openModal(){document.getElementById('pressModal').classList.add('open');}
 
