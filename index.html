@@ -544,7 +544,7 @@ canvas { display:block; width:100%!important; }
   <button class="ind-tab" onclick="selectDetailItem('빈혈',this)">빈혈</button>
 </div>
 
-<!-- Row1: 판정 등급 분포 (full width) -->
+<!-- Row1: 판정 등급 -->
 <div class="panel" style="margin-bottom:14px;">
   <div class="panel-header" style="margin-bottom:14px;">
     <div><div class="panel-title" id="detailItemTitle">비만 — 판정 등급 분포</div><div class="panel-sub">GC케어 계약 기업 전체 · 2025년 기준</div></div>
@@ -566,14 +566,52 @@ canvas { display:block; width:100%!important; }
   </div>
 </div>
 
-<!-- Row2: 연도별 추이 + 성별/연령 -->
+<!-- Row2+3: 왼쪽(연도별+동종업계) / 오른쪽(성별연령) -->
 <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:14px;align-items:stretch;">
-  <div class="panel" style="display:flex;flex-direction:column;">
-    <div class="panel-header" style="margin-bottom:10px;">
-      <div><div class="panel-title">연도별 질환의심 추이</div><div class="panel-sub">2022–2025</div></div>
+  <!-- 왼쪽: 연도별 추이 + 동종업계 비교 1:1 -->
+  <div style="display:grid;grid-template-rows:1fr 1fr;gap:14px;">
+    <div class="panel" style="display:flex;flex-direction:column;">
+      <div class="panel-header" style="margin-bottom:10px;">
+        <div><div class="panel-title">연도별 질환의심 추이</div><div class="panel-sub">2022–2025</div></div>
+      </div>
+      <div style="position:relative;flex:1;min-height:160px;"><canvas id="detailYearChart" style="position:absolute;inset:0;width:100%;height:100%;"></canvas></div>
     </div>
-    <div style="position:relative;flex:1;min-height:180px;"><canvas id="detailYearChart"></canvas></div>
+    <div class="panel" style="display:flex;flex-direction:column;">
+      <div class="panel-header" style="margin-bottom:14px;">
+        <div><div class="panel-title">동종업계 대비 비교</div><div class="panel-sub">질환의심 비율 기준 · 2025년</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:space-evenly;">
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-size:12px;font-weight:700;color:#0f2554;">우리 기업</span>
+            <span id="detailOurs" style="font-size:16px;font-weight:800;color:#0f2554;">29.3%</span>
+          </div>
+          <div style="background:#dbeafe;border-radius:5px;height:10px;overflow:hidden;">
+            <div id="detailBarOurs" style="width:60%;height:100%;background:#0f2554;border-radius:5px;transition:width 0.4s;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-size:12px;color:#6b7280;">동종 업계</span>
+            <span id="detailPeer" style="font-size:16px;font-weight:600;color:#374151;">28.6%</span>
+          </div>
+          <div style="background:#e2e8f0;border-radius:5px;height:10px;overflow:hidden;">
+            <div id="detailBarPeer" style="width:57%;height:100%;background:#60a5fa;border-radius:5px;transition:width 0.4s;"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+            <span style="font-size:12px;color:#6b7280;">전체 기업</span>
+            <span id="detailAll" style="font-size:16px;font-weight:600;color:#374151;">24.8%</span>
+          </div>
+          <div style="background:#e2e8f0;border-radius:5px;height:10px;overflow:hidden;">
+            <div id="detailBarAll" style="width:50%;height:100%;background:#bfdbfe;border-radius:5px;transition:width 0.4s;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
+  <!-- 오른쪽: 성별 & 연령대별 -->
   <div class="panel" style="align-self:start;">
     <div class="panel-header" style="margin-bottom:14px;">
       <div><div class="panel-title">성별 &amp; 연령대별 이상 소견율</div><div class="panel-sub">질환의심 비율 · 2025년 기준</div></div>
@@ -586,30 +624,6 @@ canvas { display:block; width:100%!important; }
       <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#fca5a5;border-radius:2px;display:inline-block;"></span>질환의심(여)</span>
     </div>
     <div id="detailAgeGender" style="display:flex;flex-direction:column;gap:10px;"></div>
-  </div>
-</div>
-
-<!-- Row3: 동종업계 비교 (full width, 가로 바) -->
-<div class="panel">
-  <div class="panel-header" style="margin-bottom:14px;">
-    <div><div class="panel-title">동종업계 대비 비교</div><div class="panel-sub">질환의심 비율 기준 · 2025년</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;" id="detailCompare">
-    <div style="background:#f0f4ff;border-radius:8px;padding:14px 16px;border:1px solid #c7d2fe;">
-      <div style="font-size:10px;font-weight:700;color:#0f2554;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">우리 기업</div>
-      <div id="detailOurs" style="font-size:28px;font-weight:800;color:#0f2554;margin-bottom:6px;">29.3%</div>
-      <div style="background:#dbeafe;border-radius:4px;height:8px;overflow:hidden;"><div id="detailBarOurs" style="width:60%;height:100%;background:#0f2554;border-radius:4px;transition:width 0.4s;"></div></div>
-    </div>
-    <div style="background:#f8f9fc;border-radius:8px;padding:14px 16px;border:1px solid #e2e6ee;">
-      <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">동종 업계</div>
-      <div id="detailPeer" style="font-size:28px;font-weight:700;color:#374151;margin-bottom:6px;">28.6%</div>
-      <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden;"><div id="detailBarPeer" style="width:57%;height:100%;background:#60a5fa;border-radius:4px;transition:width 0.4s;"></div></div>
-    </div>
-    <div style="background:#f8f9fc;border-radius:8px;padding:14px 16px;border:1px solid #e2e6ee;">
-      <div style="font-size:10px;font-weight:600;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">전체 기업</div>
-      <div id="detailAll" style="font-size:28px;font-weight:700;color:#374151;margin-bottom:6px;">24.8%</div>
-      <div style="background:#e2e8f0;border-radius:4px;height:8px;overflow:hidden;"><div id="detailBarAll" style="width:50%;height:100%;background:#bfdbfe;border-radius:4px;transition:width 0.4s;"></div></div>
-    </div>
   </div>
 </div>
 
@@ -1209,66 +1223,42 @@ function handleSubscribe() {
 function openModal(){document.getElementById('pressModal').classList.add('open');}
 
 
+
+
 // ── 수검 현황 차트 ──────────────────────────────────────────
 (function() {
   const years = ['2022','2023','2024','2025'];
   const industries = ['금융·은행','건설업','IT·포털','제조업','유통·서비스','의료·바이오'];
   const colors = ['#0f2554','#2563eb','#60a5fa','#1e40af','#93c5fd','#3b82f6'];
   const examRates = [
-    [87.2,88.1,89.4,91.2],
-    [74.3,75.8,77.2,79.1],
-    [91.4,92.3,93.1,94.5],
-    [82.6,83.9,85.1,86.8],
-    [78.9,80.2,81.5,83.0],
-    [93.2,94.1,95.3,96.0]
+    [87.2,88.1,89.4,91.2],[74.3,75.8,77.2,79.1],[91.4,92.3,93.1,94.5],
+    [82.6,83.9,85.1,86.8],[78.9,80.2,81.5,83.0],[93.2,94.1,95.3,96.0]
   ];
   const examRateCtx = document.getElementById('examRateChart');
   if (examRateCtx) {
     new Chart(examRateCtx, {
       type:'line',
-      data: {
-        labels: years,
-        datasets: industries.map((ind,i) => ({
-          label: ind, data: examRates[i],
-          borderColor: colors[i], backgroundColor: colors[i]+'22',
-          borderWidth: 2, pointRadius: 4, tension: 0.3
-        }))
-      },
-      options: {
-        responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ position:'bottom', labels:{ font:{ size:10 }, boxWidth:10 } } },
-        scales:{
-          y:{ min:65, max:100, ticks:{ callback: v=>v+'%', font:{size:10} }, grid:{ color:'#f3f4f6' } },
-          x:{ ticks:{ font:{size:10} }, grid:{ display:false } }
-        }
-      }
+      data: { labels: years, datasets: industries.map((ind,i) => ({
+        label: ind, data: examRates[i], borderColor: colors[i],
+        backgroundColor: colors[i]+'15', borderWidth:2, pointRadius:4, tension:0.3, fill:false
+      }))},
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{ font:{size:10}, boxWidth:10 } } },
+        scales:{ y:{ min:65, max:100, ticks:{ callback:v=>v+'%', font:{size:10} }, grid:{color:'#f3f4f6'} },
+          x:{ ticks:{font:{size:10}}, grid:{display:false} } } }
     });
   }
-
-  // 검진 지원금 차트
-  const fees = [42.5, 38.2, 35.8, 31.4, 28.7, 52.3];
+  const fees = [42.5,38.2,35.8,31.4,28.7,52.3];
   const feeCtx = document.getElementById('examFeeChart');
   if (feeCtx) {
     new Chart(feeCtx, {
       type:'bar',
-      data: {
-        labels: industries,
-        datasets:[{
-          label:'1인당 지원금(만원)',
-          data: fees,
-          backgroundColor: industries.map((_,i) => colors[i]+'CC'),
-          borderRadius: 4
-        }]
-      },
-      options:{
-        responsive:true, maintainAspectRatio:false, indexAxis:'y',
-        plugins:{ legend:{ display:false },
-          tooltip:{ callbacks:{ label: ctx => ctx.raw.toFixed(1)+'만원' } } },
-        scales:{
-          x:{ ticks:{ callback: v=>v+'만', font:{size:10} }, grid:{ color:'#f3f4f6' } },
-          y:{ ticks:{ font:{size:10} }, grid:{ display:false } }
-        }
-      }
+      data: { labels: industries, datasets:[{ label:'1인당 지원금(만원)', data:fees,
+        backgroundColor: industries.map((_,i)=>colors[i]+'CC'), borderRadius:4 }] },
+      options: { responsive:true, maintainAspectRatio:false, indexAxis:'y',
+        plugins:{ legend:{display:false} },
+        scales:{ x:{ ticks:{callback:v=>v+'만', font:{size:10}}, grid:{color:'#f3f4f6'} },
+          y:{ ticks:{font:{size:10}}, grid:{display:false} } } }
     });
   }
 })();
@@ -1276,19 +1266,19 @@ function openModal(){document.getElementById('pressModal').classList.add('open')
 // ── 항목별 상세 ──────────────────────────────────────────
 const DETAIL_DATA = {
   '비만':    { gradeA:54.0, gradeB:16.7, gradeC:29.3, years:[27.1,28.0,28.9,29.3], ours:29.3, peer:28.6, all:24.8,
-    gender:[ {age:'40대 이하', m:[50.0,0.0], f:[23.8,23.8]}, {age:'40대', m:[35.5,22.6], f:[17.5,14.0]}, {age:'50대', m:[56.5,8.7], f:[19.4,9.7]}, {age:'60대 이상', m:[33.3,33.3], f:[0.0,27.3]} ] },
+    gender:[ {age:'40대 이하',m:[50.0,0.0],f:[23.8,23.8]},{age:'40대',m:[35.5,22.6],f:[17.5,14.0]},{age:'50대',m:[56.5,8.7],f:[19.4,9.7]},{age:'60대 이상',m:[33.3,33.3],f:[0.0,27.3]} ] },
   '혈압':    { gradeA:65.2, gradeB:12.4, gradeC:22.4, years:[19.8,20.4,21.3,22.4], ours:22.4, peer:21.8, all:20.1,
-    gender:[ {age:'40대 이하', m:[8.2,3.1], f:[3.5,1.2]}, {age:'40대', m:[22.4,8.3], f:[9.8,4.1]}, {age:'50대', m:[38.7,14.2], f:[18.6,8.9]}, {age:'60대 이상', m:[52.1,18.4], f:[31.2,14.7]} ] },
+    gender:[ {age:'40대 이하',m:[8.2,3.1],f:[3.5,1.2]},{age:'40대',m:[22.4,8.3],f:[9.8,4.1]},{age:'50대',m:[38.7,14.2],f:[18.6,8.9]},{age:'60대 이상',m:[52.1,18.4],f:[31.2,14.7]} ] },
   '혈당':    { gradeA:68.4, gradeB:12.9, gradeC:18.7, years:[15.2,16.1,17.4,18.7], ours:18.7, peer:17.9, all:16.2,
-    gender:[ {age:'40대 이하', m:[6.1,2.8], f:[2.3,0.9]}, {age:'40대', m:[18.4,7.6], f:[7.2,3.4]}, {age:'50대', m:[32.1,11.8], f:[14.7,7.2]}, {age:'60대 이상', m:[44.3,16.2], f:[28.9,12.4]} ] },
+    gender:[ {age:'40대 이하',m:[6.1,2.8],f:[2.3,0.9]},{age:'40대',m:[18.4,7.6],f:[7.2,3.4]},{age:'50대',m:[32.1,11.8],f:[14.7,7.2]},{age:'60대 이상',m:[44.3,16.2],f:[28.9,12.4]} ] },
   '콜레스테롤':{ gradeA:52.1, gradeB:16.7, gradeC:31.2, years:[27.8,28.6,29.9,31.2], ours:31.2, peer:30.1, all:28.4,
-    gender:[ {age:'40대 이하', m:[22.3,8.4], f:[15.6,6.2]}, {age:'40대', m:[34.2,12.8], f:[24.7,10.3]}, {age:'50대', m:[38.9,14.6], f:[31.2,13.8]}, {age:'60대 이상', m:[41.2,16.3], f:[38.7,15.9]} ] },
+    gender:[ {age:'40대 이하',m:[22.3,8.4],f:[15.6,6.2]},{age:'40대',m:[34.2,12.8],f:[24.7,10.3]},{age:'50대',m:[38.9,14.6],f:[31.2,13.8]},{age:'60대 이상',m:[41.2,16.3],f:[38.7,15.9]} ] },
   '간기능':  { gradeA:60.8, gradeB:14.4, gradeC:24.8, years:[21.4,22.3,23.6,24.8], ours:24.8, peer:24.2, all:21.7,
-    gender:[ {age:'40대 이하', m:[18.4,6.7], f:[6.2,2.4]}, {age:'40대', m:[28.6,10.4], f:[10.8,4.2]}, {age:'50대', m:[36.4,13.2], f:[14.3,6.8]}, {age:'60대 이상', m:[41.8,15.6], f:[18.9,8.4]} ] },
+    gender:[ {age:'40대 이하',m:[18.4,6.7],f:[6.2,2.4]},{age:'40대',m:[28.6,10.4],f:[10.8,4.2]},{age:'50대',m:[36.4,13.2],f:[14.3,6.8]},{age:'60대 이상',m:[41.8,15.6],f:[18.9,8.4]} ] },
   '신장기능': { gradeA:82.4, gradeB:8.3, gradeC:9.3, years:[8.1,8.4,8.9,9.3], ours:9.3, peer:9.1, all:8.4,
-    gender:[ {age:'40대 이하', m:[4.2,1.8], f:[2.1,0.8]}, {age:'40대', m:[8.7,3.4], f:[4.3,1.9]}, {age:'50대', m:[12.4,4.8], f:[6.8,3.1]}, {age:'60대 이상', m:[18.6,7.2], f:[11.4,5.3]} ] },
+    gender:[ {age:'40대 이하',m:[4.2,1.8],f:[2.1,0.8]},{age:'40대',m:[8.7,3.4],f:[4.3,1.9]},{age:'50대',m:[12.4,4.8],f:[6.8,3.1]},{age:'60대 이상',m:[18.6,7.2],f:[11.4,5.3]} ] },
   '빈혈':    { gradeA:84.2, gradeB:7.7, gradeC:8.1, years:[7.4,7.6,7.9,8.1], ours:8.1, peer:8.4, all:7.8,
-    gender:[ {age:'40대 이하', m:[2.1,0.8], f:[12.4,5.8]}, {age:'40대', m:[3.4,1.2], f:[14.7,6.9]}, {age:'50대', m:[4.8,1.9], f:[11.2,5.4]}, {age:'60대 이상', m:[7.2,2.8], f:[9.8,4.6]} ] }
+    gender:[ {age:'40대 이하',m:[2.1,0.8],f:[12.4,5.8]},{age:'40대',m:[3.4,1.2],f:[14.7,6.9]},{age:'50대',m:[4.8,1.9],f:[11.2,5.4]},{age:'60대 이상',m:[7.2,2.8],f:[9.8,4.6]} ] }
 };
 
 let detailYearChart = null;
@@ -1298,98 +1288,58 @@ function selectDetailItem(item, btn) {
   if (btn) btn.classList.add('active');
   const d = DETAIL_DATA[item];
   if (!d) return;
-
-  document.getElementById('detailItemTitle').textContent = item + ' \u2014 \ud310\uc815 \ub4f1\uae09 \ubd84\ud3ec';
+  document.getElementById('detailItemTitle').textContent = item + ' — 판정 등급 분포';
   document.getElementById('detailGradeA').textContent = d.gradeA.toFixed(1) + '%';
   document.getElementById('detailGradeB').textContent = d.gradeB.toFixed(1) + '%';
   document.getElementById('detailGradeC').textContent = d.gradeC.toFixed(1) + '%';
   document.getElementById('detailOurs').textContent = d.ours.toFixed(1) + '%';
   document.getElementById('detailPeer').textContent = d.peer.toFixed(1) + '%';
   document.getElementById('detailAll').textContent = d.all.toFixed(1) + '%';
-
-  // 비교 바 너비 — 최대값을 100% 기준으로 스케일
-  const maxV = Math.max(d.ours, d.peer, d.all) * 1.15 || 10;
-  const toW = v => Math.max(3, Math.round(v / maxV * 100)) + '%';
-  const bOurs = document.getElementById('detailBarOurs');
-  const bPeer = document.getElementById('detailBarPeer');
-  const bAll  = document.getElementById('detailBarAll');
-  if (bOurs) bOurs.style.width = toW(d.ours);
-  if (bPeer) bPeer.style.width = toW(d.peer);
-  if (bAll)  bAll.style.width  = toW(d.all);
-
-  // 연도별 차트 재생성
+  const maxV = Math.max(d.ours, d.peer, d.all, 10);
+  const toW = v => Math.max(4, Math.min(90, v/maxV*90)).toFixed(1) + '%';
+  document.getElementById('detailBarOurs').style.width = toW(d.ours);
+  document.getElementById('detailBarPeer').style.width = toW(d.peer);
+  document.getElementById('detailBarAll').style.width = toW(d.all);
   if (detailYearChart) { detailYearChart.destroy(); detailYearChart = null; }
   const yCtx = document.getElementById('detailYearChart');
   if (yCtx) {
     detailYearChart = new Chart(yCtx, {
       type: 'line',
-      data: {
-        labels: ['2022', '2023', '2024', '2025'],
-        datasets: [{
-          label: '질환의심(%)',
-          data: d.years,
-          borderColor: '#dc2626',
-          backgroundColor: 'rgba(220,38,38,0.08)',
-          borderWidth: 2.5,
-          pointRadius: 5,
-          pointBackgroundColor: '#dc2626',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          fill: true,
-          tension: 0.3
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ctx.raw.toFixed(1) + '%' } }
-        },
-        scales: {
-          y: { min: 0, ticks: { callback: v => v + '%', font: { size: 10 } }, grid: { color: '#f3f4f6' } },
-          x: { ticks: { font: { size: 10 } }, grid: { display: false } }
-        }
-      }
+      data: { labels:['2022','2023','2024','2025'], datasets:[{
+        label:'질환의심(%)', data:d.years,
+        borderColor:'#dc2626', backgroundColor:'rgba(220,38,38,0.08)',
+        borderWidth:2.5, pointRadius:5, pointBackgroundColor:'#dc2626',
+        pointBorderColor:'#fff', pointBorderWidth:2, fill:true, tension:0.3
+      }]},
+      options: { responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.raw.toFixed(1)+'%'}} },
+        scales:{ y:{min:0,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'#f3f4f6'}},
+          x:{ticks:{font:{size:10}},grid:{display:false}} } }
     });
   }
-
-  // 성별/연령별
   const container = document.getElementById('detailAgeGender');
   if (!container) return;
   container.innerHTML = '';
-  const maxPct = 70; // 바 최대 너비 %
+  const maxP = 70;
   d.gender.forEach(g => {
     const row = document.createElement('div');
     row.style.cssText = 'border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;background:#f8f9fc;';
-    const mNorm = Math.min(maxPct, g.m[0] * (maxPct/100));
-    const mDNorm = Math.min(maxPct, g.m[1] * (maxPct/100));
-    const fNorm = Math.min(maxPct, g.f[0] * (maxPct/100));
-    const fDNorm = Math.min(maxPct, g.f[1] * (maxPct/100));
-    row.innerHTML = '<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:10px;">' + g.age + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
-      + '<div><div style="font-size:10px;color:#0f2554;font-weight:600;margin-bottom:5px;">남성</div>'
-      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-      + '<div style="width:' + mNorm + '%;max-width:70%;height:14px;background:#0f2554;border-radius:3px;min-width:3px;transition:width 0.3s;"></div>'
-      + '<span style="font-size:11px;font-weight:600;color:#0f2554;">' + g.m[0] + '%</span></div>'
-      + '<div style="display:flex;align-items:center;gap:6px;">'
-      + '<div style="width:' + mDNorm + '%;max-width:70%;height:14px;background:#dc2626;border-radius:3px;min-width:3px;transition:width 0.3s;"></div>'
-      + '<span style="font-size:10px;color:#dc2626;">\uc9c8\ud658\uc758\uc2ec ' + g.m[1] + '%</span></div></div>'
-      + '<div><div style="font-size:10px;color:#1d4ed8;font-weight:600;margin-bottom:5px;">\uc5ec\uc131</div>'
-      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
-      + '<div style="width:' + fNorm + '%;max-width:70%;height:14px;background:#93c5fd;border-radius:3px;min-width:3px;transition:width 0.3s;"></div>'
-      + '<span style="font-size:11px;font-weight:600;color:#1d4ed8;">' + g.f[0] + '%</span></div>'
-      + '<div style="display:flex;align-items:center;gap:6px;">'
-      + '<div style="width:' + fDNorm + '%;max-width:70%;height:14px;background:#fca5a5;border-radius:3px;min-width:3px;transition:width 0.3s;"></div>'
-      + '<span style="font-size:10px;color:#dc2626;">\uc9c8\ud658\uc758\uc2ec ' + g.f[1] + '%</span></div></div>'
-      + '</div>';
+    const mN = Math.min(maxP, g.m[0]*(maxP/100)); const mD = Math.min(maxP, g.m[1]*(maxP/100));
+    const fN = Math.min(maxP, g.f[0]*(maxP/100)); const fD = Math.min(maxP, g.f[1]*(maxP/100));
+    row.innerHTML = '<div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:10px;">'+g.age+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+      +'<div><div style="font-size:10px;color:#0f2554;font-weight:600;margin-bottom:5px;">남성</div>'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><div style="width:'+mN+'%;max-width:70%;height:14px;background:#0f2554;border-radius:3px;min-width:3px;"></div><span style="font-size:11px;font-weight:600;color:#0f2554;">'+g.m[0]+'%</span></div>'
+      +'<div style="display:flex;align-items:center;gap:6px;"><div style="width:'+mD+'%;max-width:70%;height:14px;background:#dc2626;border-radius:3px;min-width:3px;"></div><span style="font-size:10px;color:#dc2626;">질환의심 '+g.m[1]+'%</span></div></div>'
+      +'<div><div style="font-size:10px;color:#1d4ed8;font-weight:600;margin-bottom:5px;">여성</div>'
+      +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;"><div style="width:'+fN+'%;max-width:70%;height:14px;background:#93c5fd;border-radius:3px;min-width:3px;"></div><span style="font-size:11px;font-weight:600;color:#1d4ed8;">'+g.f[0]+'%</span></div>'
+      +'<div style="display:flex;align-items:center;gap:6px;"><div style="width:'+fD+'%;max-width:70%;height:14px;background:#fca5a5;border-radius:3px;min-width:3px;"></div><span style="font-size:10px;color:#dc2626;">질환의심 '+g.f[1]+'%</span></div></div>'
+      +'</div>';
     container.appendChild(row);
   });
 }
 
-// 초기 렌더 — DOM 완전 로드 후 실행
-window.addEventListener('load', function() {
-  selectDetailItem('비만', null);
-});
+window.addEventListener('load', function() { selectDetailItem('비만', null); });
 
 // CHART DEFAULTS
 Chart.defaults.font.family="'Noto Sans KR',sans-serif";
